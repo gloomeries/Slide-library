@@ -1,92 +1,108 @@
-const slides = [
-  { id: 1, title: "Титульный слайд — Компания", category: "Титульные слайды", tags: ["титул", "начало", "компания"], icon: "🏢" },
-  { id: 2, title: "Титульный слайд — Проект", category: "Титульные слайды", tags: ["титул", "проект"], icon: "📋" },
-  { id: 3, title: "Agenda встречи", category: "Структура и agenda", tags: ["agenda", "план", "структура"], icon: "📌" },
-  { id: 4, title: "Структура презентации", category: "Структура и agenda", tags: ["структура", "оглавление"], icon: "🗂️" },
-  { id: 5, title: "График — Линейный", category: "Графики и данные", tags: ["график", "данные", "динамика"], icon: "📈" },
-  { id: 6, title: "График — Столбчатый", category: "Графики и данные", tags: ["график", "сравнение", "данные"], icon: "📊" },
-  { id: 7, title: "Таблица данных", category: "Графики и данные", tags: ["таблица", "данные", "цифры"], icon: "🔢" },
-  { id: 8, title: "Команда проекта", category: "Команда и контакты", tags: ["команда", "люди", "роли"], icon: "👥" },
-  { id: 9, title: "Контакты", category: "Команда и контакты", tags: ["контакты", "связь"], icon: "📞" },
-  { id: 10, title: "Дорожная карта", category: "Дорожная карта", tags: ["roadmap", "план", "этапы"], icon: "🗺️" },
-  { id: 11, title: "Этапы проекта", category: "Дорожная карта", tags: ["этапы", "timeline", "план"], icon: "📅" },
+const BASE_URL = "https://gloomeries.github.io/Slide-library";
+
+const categories = [
+  { id: "title", name: "Титул", button: `${BASE_URL}/assets/buttons/title.png`, preview: `${BASE_URL}/assets/previews/title.png`, template: `${BASE_URL}/assets/templates/title.pptx` },
+  { id: "executive_summary", name: "Executive Summary", button: `${BASE_URL}/assets/buttons/executive_summary.png`, preview: `${BASE_URL}/assets/previews/executive_summary.png`, template: `${BASE_URL}/assets/templates/executive_summary.pptx` },
+  { id: "market_analysis", name: "Анализ рынка", button: `${BASE_URL}/assets/buttons/market_analysis.png`, preview: `${BASE_URL}/assets/previews/market_analysis.png`, template: `${BASE_URL}/assets/templates/market_analysis.pptx` },
+  { id: "marketing_plan", name: "Маркетинговый план", button: `${BASE_URL}/assets/buttons/marketing_plan.png`, preview: `${BASE_URL}/assets/previews/marketing_plan.png`, template: `${BASE_URL}/assets/templates/marketing_plan.pptx` },
+  { id: "prototypes", name: "Описание прототипов", button: `${BASE_URL}/assets/buttons/prototypes.png`, preview: `${BASE_URL}/assets/previews/prototypes.png`, template: `${BASE_URL}/assets/templates/prototypes.pptx` },
+  { id: "risk_analysis", name: "Матрица рисков", button: `${BASE_URL}/assets/buttons/risk_analysis.png`, preview: `${BASE_URL}/assets/previews/risk_analysis.png`, template: `${BASE_URL}/assets/templates/risk_matrix.pptx` },
+  { id: "roadmap", name: "Дорожная карта", button: `${BASE_URL}/assets/buttons/roadmap.png`, preview: `${BASE_URL}/assets/previews/roadmap.png`, template: `${BASE_URL}/assets/templates/roadmap.pptx` },
+  { id: "target_audience", name: "Целевая аудитория", button: `${BASE_URL}/assets/buttons/target_audience.png`, preview: `${BASE_URL}/assets/previews/target_audience.png`, template: `${BASE_URL}/assets/templates/target_audience.pptx` },
+  { id: "team", name: "Команда проекта", button: `${BASE_URL}/assets/buttons/team.png`, preview: `${BASE_URL}/assets/previews/team.png`, template: `${BASE_URL}/assets/templates/team.pptx` },
+  { id: "business_process", name: "Бизнес-процесс", button: `${BASE_URL}/assets/buttons/business_process.png`, preview: `${BASE_URL}/assets/previews/business_process.png`, template: `${BASE_URL}/assets/templates/business_process.pptx` },
 ];
 
-let activeCategory = "Все";
-
-const categories = ["Все", ...new Set(slides.map(s => s.category))];
+let currentTemplate = null;
 
 Office.onReady(() => {
-  renderFilters();
-  renderSlides();
+  renderCategories(categories);
 });
 
-function renderFilters() {
-  const container = document.getElementById("filters");
-  container.innerHTML = categories.map(cat => `
-    <button class="filter-btn ${cat === activeCategory ? 'active' : ''}"
-      onclick="setCategory('${cat}')">${cat}</button>
-  `).join('');
-}
-
-function setCategory(cat) {
-  activeCategory = cat;
-  renderFilters();
-  renderSlides();
-}
-
-function renderSlides() {
-  const query = document.getElementById("searchInput").value.toLowerCase();
-  const container = document.getElementById("slideList");
-
-  const filtered = slides.filter(s => {
-    const matchCat = activeCategory === "Все" || s.category === activeCategory;
-    const matchQuery = !query ||
-      s.title.toLowerCase().includes(query) ||
-      s.tags.some(t => t.includes(query));
-    return matchCat && matchQuery;
-  });
-
-  if (filtered.length === 0) {
-    container.innerHTML = '<div class="empty">Ничего не найдено</div>';
+function renderCategories(list) {
+  const grid = document.getElementById("categoryGrid");
+  if (list.length === 0) {
+    grid.innerHTML = '<div class="empty" style="grid-column:span 2">Ничего не найдено</div>';
     return;
   }
-
-  container.innerHTML = filtered.map(s => `
-    <div class="slide-card">
-      <div class="slide-icon">${s.icon}</div>
-      <div class="slide-info">
-        <div class="slide-title">${s.title}</div>
-        <div class="slide-tag">${s.category}</div>
-      </div>
-      <button class="insert-btn" onclick="insertSlide(${s.id})">Вставить</button>
+  grid.innerHTML = list.map(cat => `
+    <div class="category-card" onclick="openCatalog('${cat.id}')">
+      <img src="${cat.button}" alt="${cat.name}" onerror="this.style.background='#f0f0f0'" />
+      <div class="label">${cat.name}</div>
     </div>
   `).join('');
 }
 
-function insertSlide(id) {
-  const slide = slides.find(s => s.id === id);
-  PowerPoint.run(async (context) => {
-    const newSlide = context.presentation.slides.add();
-    await context.sync();
-
-    const shapes = newSlide.shapes;
-    const textBox = shapes.addTextBox(slide.title, { left: 100, top: 100, width: 600, height: 80 });
-    textBox.textFrame.textRange.font.size = 28;
-    textBox.textFrame.textRange.font.bold = true;
-
-    const subBox = shapes.addTextBox(slide.category, { left: 100, top: 200, width: 600, height: 40 });
-    subBox.textFrame.textRange.font.size = 16;
-    subBox.textFrame.textRange.font.color = "#666666";
-
-    await context.sync();
-
-    showToast();
-  });
+function handleSearch() {
+  const query = document.getElementById("searchInput").value.toLowerCase();
+  const filtered = categories.filter(c => c.name.toLowerCase().includes(query));
+  renderCategories(filtered);
 }
 
-function showToast() {
+function openCatalog(categoryId) {
+  const cat = categories.find(c => c.id === categoryId);
+  if (!cat) return;
+
+  document.getElementById("mainScreen").style.display = "none";
+  document.getElementById("catalogScreen").style.display = "block";
+  document.getElementById("catalogTitle").textContent = cat.name;
+
+  document.getElementById("slideGrid").innerHTML = `
+    <div class="slide-card" onclick="openModal('${cat.preview}', '${cat.name}', '${cat.template}')">
+      <img src="${cat.preview}" alt="${cat.name}" />
+    </div>
+  `;
+}
+
+function goBack() {
+  document.getElementById("catalogScreen").style.display = "none";
+  document.getElementById("mainScreen").style.display = "block";
+}
+
+function openModal(previewUrl, title, templateUrl) {
+  currentTemplate = templateUrl;
+  document.getElementById("modalImg").src = previewUrl;
+  document.getElementById("modalTitle").textContent = title;
+  document.getElementById("modalOverlay").classList.add("active");
+}
+
+function closeModal() {
+  document.getElementById("modalOverlay").classList.remove("active");
+  currentTemplate = null;
+}
+
+function insertSlide() {
+  if (!currentTemplate) return;
+
+  fetch(currentTemplate)
+    .then(res => res.arrayBuffer())
+    .then(buffer => {
+      const base64 = arrayBufferToBase64(buffer);
+      PowerPoint.run(async (context) => {
+        context.presentation.insertSlidesFromBase64(base64);
+        await context.sync();
+        closeModal();
+        showToast();
+      });
+    })
+    .catch(() => {
+      showToast("Ошибка при вставке слайда");
+    });
+}
+
+function arrayBufferToBase64(buffer) {
+  let binary = '';
+  const bytes = new Uint8Array(buffer);
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
+function showToast(msg) {
   const toast = document.getElementById("toast");
+  toast.textContent = msg || "Слайд вставлен!";
   toast.style.display = "block";
-  setTimeout(() => { toast.style.display = "none"; }, 2000);
+  setTimeout(() => { toast.style.display = "none"; }, 2500);
 }
+
