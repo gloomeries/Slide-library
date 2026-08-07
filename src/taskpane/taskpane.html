@@ -1,300 +1,190 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8" />
-  <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Библиотека слайдов</title>
-  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Slidebrary</title>
+    <link rel="stylesheet" href="taskpane.css" />
+    <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+  </head>
+  <body>
+    <div id="app" class="app-shell">
+      <header class="app-header">
+        <button class="icon-button profile-button" type="button" aria-label="Открыть профиль">
+          <img src="assets/ui/user.svg" alt="" />
+        </button>
+        <h1>Slidebrary</h1>
+        <button class="window-menu" type="button" aria-label="Меню приложения">
+          <img src="assets/ui/more.svg" alt="" />
+        </button>
+      </header>
 
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background: #f5f5f5;
-      color: #1a1a1a;
-      font-size: 13px;
-    }
+      <div class="workspace">
+        <aside class="sidebar" aria-label="Разделы библиотеки">
+          <button class="collapse-button" type="button" aria-label="Свернуть меню">›</button>
+          <nav id="sectionNav" class="section-nav"></nav>
+        </aside>
 
-    .header {
-      background: #fff;
-      border-bottom: 1px solid #e5e5e5;
-      padding: 14px 16px 10px;
-    }
+        <main class="main-panel">
+          <div class="tabs" role="tablist" aria-label="Источник материалов">
+            <button
+              class="tab is-active"
+              type="button"
+              role="tab"
+              data-tab="public"
+              aria-selected="true"
+            >
+              Публичное
+            </button>
+            <button class="tab" type="button" role="tab" data-tab="personal" aria-selected="false">
+              Личное
+            </button>
+          </div>
 
-    .header h1 {
-      font-size: 15px;
-      font-weight: 600;
-    }
+          <div class="search-row">
+            <label class="search-field" for="searchInput">
+              <img src="assets/ui/search.svg" alt="" />
+              <input id="searchInput" type="search" placeholder="Поиск" autocomplete="off" />
+            </label>
+            <button
+              id="filterButton"
+              class="icon-button filter-button"
+              type="button"
+              aria-label="Открыть фильтры"
+            >
+              <img src="assets/ui/filter.svg" alt="" />
+              <span id="filterBadge" class="filter-badge" hidden></span>
+            </button>
+          </div>
 
-    .header p {
-      font-size: 11px;
-      color: #888;
-      margin-top: 2px;
-    }
+          <div class="content-toolbar">
+            <p id="sectionHint">Выберите макет для вашего слайда</p>
+            <div class="toolbar-actions">
+              <button
+                id="sortButton"
+                class="icon-button"
+                type="button"
+                aria-label="Изменить сортировку"
+                title="Сортировка"
+              >
+                <img src="assets/ui/sort.svg" alt="" />
+              </button>
+              <button
+                id="viewButton"
+                class="icon-button"
+                type="button"
+                aria-label="Переключить вид"
+                title="Плитка или список"
+              >
+                <img src="assets/ui/list.svg" alt="" />
+              </button>
+            </div>
+          </div>
 
-    .search-wrap {
-      padding: 10px 16px;
-      background: #fff;
-      border-bottom: 1px solid #e5e5e5;
-      position: relative;
-    }
+          <div id="statusRegion" class="status-region" role="status" aria-live="polite"></div>
+          <div id="library" class="library-grid" aria-label="Материалы библиотеки"></div>
 
-    .search-wrap input {
-      width: 100%;
-      padding: 7px 10px 7px 32px;
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      font-size: 12px;
-      outline: none;
-      background: #fafafa;
-    }
-
-    .search-wrap input:focus {
-      border-color: #0078d4;
-      background: #fff;
-    }
-
-    .search-icon {
-      position: absolute;
-      left: 26px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 14px;
-      height: 14px;
-      opacity: 0.4;
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      padding: 12px;
-    }
-
-    .category-card {
-    background: #fff;
-    border-radius: 10px;
-    overflow: hidden;
-    border: 2px solid #e0e0e0;
-    cursor: pointer;
-    transition: box-shadow 0.15s, border-color 0.15s;
-    }
-
-    .category-card:hover {
-    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
-    border-color: #0078d4;
-    }
-
-    .category-card img {
-      width: 100%;
-      aspect-ratio: 16/9;
-      object-fit: cover;
-      display: block;
-    }
-
-    .category-card .label {
-      padding: 7px 8px;
-      font-size: 11px;
-      font-weight: 600;
-      color: #1a1a1a;
-      line-height: 1.3;
-    }
-
-    .catalog { display: none; }
-
-    .back-btn {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 10px 16px;
-      background: #fff;
-      border-bottom: 1px solid #e5e5e5;
-      cursor: pointer;
-      font-size: 12px;
-      color: #0078d4;
-      font-weight: 500;
-    }
-
-    .back-btn:hover { background: #f0f0f0; }
-
-    .catalog-title {
-      padding: 10px 16px 6px;
-      font-size: 13px;
-      font-weight: 600;
-    }
-
-    .slide-grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 8px;
-      padding: 0 12px 12px;
-    }
-
-    .slide-card {
-      background: #fff;
-      border-radius: 8px;
-      overflow: hidden;
-      border: 1px solid #e5e5e5;
-      cursor: pointer;
-      transition: box-shadow 0.15s;
-    }
-
-    .slide-card:hover {
-      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
-    }
-
-    .slide-card img {
-      width: 100%;
-      aspect-ratio: 16/9;
-      object-fit: cover;
-      display: block;
-    }
-
-    .slide-card .slide-label {
-      padding: 7px 10px;
-      font-size: 11px;
-      font-weight: 500;
-    }
-
-    .modal-overlay {
-      display: none;
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: rgba(0,0,0,0.5);
-      z-index: 100;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .modal-overlay.active {
-      display: flex;
-    }
-
-    .modal {
-      background: #fff;
-      border-radius: 12px;
-      width: 90%;
-      max-width: 320px;
-      overflow: hidden;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-    }
-
-    .modal img {
-      width: 100%;
-      aspect-ratio: 16/9;
-      object-fit: cover;
-      display: block;
-    }
-
-    .modal-info {
-      padding: 12px 14px;
-    }
-
-    .modal-title {
-      font-size: 13px;
-      font-weight: 600;
-      margin-bottom: 10px;
-    }
-
-    .modal-buttons {
-      display: flex;
-      gap: 8px;
-    }
-
-    .btn-insert {
-      flex: 1;
-      padding: 8px;
-      background: #0078d4;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      font-size: 12px;
-      cursor: pointer;
-      font-weight: 500;
-    }
-
-    .btn-insert:hover { background: #006cbd; }
-
-    .btn-close {
-      flex: 1;
-      padding: 8px;
-      background: #f0f0f0;
-      color: #333;
-      border: none;
-      border-radius: 6px;
-      font-size: 12px;
-      cursor: pointer;
-      font-weight: 500;
-    }
-
-    .btn-close:hover { background: #e0e0e0; }
-
-    .empty {
-      text-align: center;
-      color: #aaa;
-      font-size: 12px;
-      padding: 30px 0;
-    }
-
-    .toast {
-      position: fixed;
-      bottom: 16px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #323130;
-      color: white;
-      padding: 8px 16px;
-      border-radius: 6px;
-      font-size: 12px;
-      display: none;
-      z-index: 200;
-    }
-  </style>
-</head>
-<body>
-
-  <div class="header">
-    <h1>Библиотека слайдов</h1>
-    <p>Найдите и вставьте нужный слайд</p>
-  </div>
-
-  <div class="search-wrap">
-    <svg class="search-icon" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="6.5" cy="6.5" r="5" stroke="#000" stroke-width="1.5"/>
-      <line x1="10.5" y1="10.5" x2="14" y2="14" stroke="#000" stroke-width="1.5" stroke-linecap="round"/>
-    </svg>
-    <input type="text" id="searchInput" placeholder="Поиск по категории..." oninput="handleSearch()" />
-  </div>
-
-  <div id="mainScreen">
-    <div class="grid" id="categoryGrid"></div>
-  </div>
-
-  <!-- Экран каталога категории -->
-  <div id="catalogScreen" class="catalog">
-    <div class="back-btn" onclick="goBack()"> Назад</div>
-    <div class="catalog-title" id="catalogTitle"></div>
-    <div class="slide-grid" id="slideGrid"></div>
-  </div>
-
-  <div class="modal-overlay" id="modalOverlay">
-    <div class="modal">
-      <img id="modalImg" src="data:," alt="" />
-      <div class="modal-info">
-        <div class="modal-title" id="modalTitle"></div>
-        <div class="modal-buttons">
-          <button class="btn-insert" onclick="insertSlide()">Вставить</button>
-          <button class="btn-close" onclick="closeModal()">Закрыть</button>
-        </div>
+          <div class="selection-actions">
+            <button id="clearSelectionButton" class="button button-secondary" type="button">
+              Отменить
+            </button>
+            <button id="insertSelectionButton" class="button button-primary" type="button" disabled>
+              Добавить
+            </button>
+          </div>
+        </main>
       </div>
     </div>
-  </div>
 
-  <div class="toast" id="toast">Слайд вставлен</div>
+    <div id="filterOverlay" class="overlay" hidden>
+      <section class="filter-drawer" role="dialog" aria-modal="true" aria-labelledby="filterTitle">
+        <header class="drawer-header">
+          <button id="resetFiltersButton" class="text-button" type="button">Очистить</button>
+          <h2 id="filterTitle">Фильтры</h2>
+          <button
+            id="closeFiltersButton"
+            class="icon-button"
+            type="button"
+            aria-label="Закрыть фильтры"
+          >
+            <img src="assets/ui/close.svg" alt="" />
+          </button>
+        </header>
+        <form id="filterForm" class="filter-form">
+          <label>
+            <span>По типу контента</span>
+            <select name="type">
+              <option value="">Любой</option>
+            </select>
+          </label>
+          <label>
+            <span>По продуктам</span>
+            <select name="product">
+              <option value="">Любой</option>
+            </select>
+          </label>
+          <label>
+            <span>По формату</span>
+            <select name="format">
+              <option value="">Любой</option>
+            </select>
+          </label>
+          <label>
+            <span>По стилю оформления</span>
+            <select name="style">
+              <option value="">Любой</option>
+            </select>
+          </label>
+          <button class="button button-primary filter-submit" type="submit">
+            Показать результаты
+          </button>
+        </form>
+      </section>
+    </div>
 
-  <script src="taskpane.js"></script>
-</body>
+    <div id="previewOverlay" class="overlay preview-overlay" hidden>
+      <section
+        class="preview-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="previewTitle"
+      >
+        <header class="drawer-header">
+          <span></span>
+          <h2 id="previewDialogTitle">Подробнее</h2>
+          <button
+            id="closePreviewButton"
+            class="icon-button"
+            type="button"
+            aria-label="Закрыть предпросмотр"
+          >
+            <img src="assets/ui/close.svg" alt="" />
+          </button>
+        </header>
+        <img id="previewImage" class="preview-image" src="data:," alt="" />
+        <h3 id="previewTitle"></h3>
+        <dl class="preview-details">
+          <div>
+            <dt>Статус</dt>
+            <dd>Утверждено</dd>
+          </div>
+          <div>
+            <dt>Формат</dt>
+            <dd id="previewFormat"></dd>
+          </div>
+          <div>
+            <dt>Продукт</dt>
+            <dd id="previewProduct"></dd>
+          </div>
+        </dl>
+        <button id="previewInsertButton" class="button button-primary preview-insert" type="button">
+          Вставить слайд
+        </button>
+      </section>
+    </div>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="taskpane.js"></script>
+  </body>
 </html>
-
