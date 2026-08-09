@@ -7,6 +7,7 @@ const BASE_URL = "https://gloomeries.github.io/Slide-library";
 const STORAGE_KEYS = {
   favorites: "slidebrary:favorites",
   recent: "slidebrary:recent",
+  account: "slidebrary:account",
 };
 
 const materials = [
@@ -158,10 +159,12 @@ const state = {
   loading: true,
   inserting: false,
   sidebarCollapsed: false,
+  account: readStoredObject(STORAGE_KEYS.account),
 };
 
 const elements = {};
 let toastTimer;
+let pendingFolderName = "";
 
 function readStoredArray(key) {
   try {
@@ -178,6 +181,37 @@ function writeStoredArray(key, value) {
   } catch {
     showToast("Не удалось сохранить данные на этом устройстве");
   }
+}
+
+function readStoredObject(key) {
+  try {
+    const value = JSON.parse(localStorage.getItem(key) || "{}");
+    return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeStoredObject(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    showToast("Не удалось сохранить данные на этом устройстве");
+  }
+}
+
+function formatAccountDate(value) {
+  if (!value) return "Ещё не выполнялся";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("ru-RU", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).format(date);
 }
 
 function escapeHtml(value) {
@@ -212,14 +246,21 @@ function cacheElements() {
   [
     "sectionNav",
     "collapseButton",
+    "profileButton",
     "searchInput",
     "filterButton",
     "filterBadge",
     "sortButton",
     "viewButton",
     "shareButton",
-    "moreButton",
-    "closeAppButton",
+    "accountOverlay",
+    "accountForm",
+    "accountEmail",
+    "folderPickerButton",
+    "folderInput",
+    "lastLoginField",
+    "indexUpdatedField",
+    "cancelAccountButton",
     "sectionHint",
     "statusRegion",
     "library",
@@ -481,6 +522,35 @@ function closeFilters() {
   elements.filterButton.focus();
 }
 
+function openAccount() {
+  pendingFolderName = state.account.folderName || "";
+  elements.accountEmail.value = state.account.email || "";
+  elements.folderPickerButton.querySelector(".folder-path").textContent = pendingFolderName
+    ? `//…/${pendingFolderName}`
+    : "//… Выбрать…";
+  elements.lastLoginField.value = formatAccountDate(state.account.lastLogin);
+  elements.indexUpdatedField.value = state.account.indexUpdated
+    ? formatAccountDate(state.account.indexUpdated)
+    : "Файл не выбран";
+  elements.folderInput.value = "";
+  elements.accountOverlay.hidden = false;
+  elements.accountEmail.focus();
+}
+
+function closeAccount() {
+  elements.accountOverlay.hidden = true;
+  elements.folderInput.value = "";
+  pendingFolderName = "";
+  elements.profileButton.focus();
+}
+
+function getFolderNameFromFiles(files) {
+  const firstFile = files?.[0];
+  if (!firstFile) return "";
+  const relativePath = firstFile.webkitRelativePath || firstFile.name;
+  return relativePath.split("/")[0] || firstFile.name;
+}
+
 function resetFilters() {
   state.filters = { type: "", product: "", format: "", style: "" };
   elements.filterForm.reset();
@@ -578,6 +648,34 @@ function handleLibraryKeydown(event) {
 }
 
 function bindEvents() {
+  elements.profileButton.addEventListener("click", openAccount);
+  elements.cancelAccountButton.addEventListener("click", closeAccount);
+  elements.folderPickerButton.addEventListener("click", () => elements.folderInput.click());
+  elements.folderInput.addEventListener("change", (event) => {
+    pendingFolderName = getFolderNameFromFiles(event.target.files);
+    if (!pendingFolderName) return;
+    elements.folderPickerButton.querySelector(".folder-path").textContent =
+      `//…/${pendingFolderName}`;
+    elements.indexUpdatedField.value = formatAccountDate(new Date().toISOString());
+  });
+  elements.accountForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const now = new Date().toISOString();
+    const folderChanged = Boolean(elements.folderInput.files?.length);
+    state.account = {
+      email: elements.accountEmail.value.trim(),
+      folderName: pendingFolderName,
+      lastLogin: now,
+      indexUpdated: folderChanged ? now : state.account.indexUpdated || "",
+    };
+    writeStoredObject(STORAGE_KEYS.account, state.account);
+    closeAccount();
+    showToast("Данные личного кабинета сохранены");
+  });
+  elements.accountOverlay.addEventListener("click", (event) => {
+    if (event.target === elements.accountOverlay) closeAccount();
+  });
+
   elements.collapseButton.addEventListener("click", () => {
     state.sidebarCollapsed = !state.sidebarCollapsed;
     renderControls();
@@ -634,12 +732,6 @@ function bindEvents() {
       if (error?.name !== "AbortError") showToast("Не удалось поделиться ссылкой");
     }
   });
-  elements.moreButton.addEventListener("click", () =>
-    showToast("Дополнительные настройки появятся позже")
-  );
-  elements.closeAppButton.addEventListener("click", () =>
-    showToast("Закройте панель крестиком в заголовке PowerPoint")
-  );
   elements.library.addEventListener("click", handleLibraryClick);
   elements.library.addEventListener("keydown", handleLibraryKeydown);
   elements.library.addEventListener(
@@ -670,7 +762,8 @@ function bindEvents() {
   });
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape") return;
-    if (!elements.previewOverlay.hidden) closePreview();
+    if (!elements.accountOverlay.hidden) closeAccount();
+    else if (!elements.previewOverlay.hidden) closePreview();
     else if (!elements.filterOverlay.hidden) closeFilters();
   });
 }

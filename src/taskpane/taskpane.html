@@ -11,23 +11,15 @@
   <body>
     <div id="app" class="app-shell">
       <header class="app-header">
-        <button class="icon-button profile-button" type="button" aria-label="Открыть профиль">
+        <button
+          id="profileButton"
+          class="icon-button profile-button"
+          type="button"
+          aria-label="Открыть личный кабинет"
+        >
           <img src="assets/ui/user.svg" alt="" />
         </button>
         <h1>Slidebrary</h1>
-        <div class="window-actions" aria-label="Управление приложением">
-          <button id="moreButton" class="window-action" type="button" aria-label="Меню приложения">
-            <img src="assets/ui/more.svg" alt="" />
-          </button>
-          <button
-            id="closeAppButton"
-            class="window-action window-close"
-            type="button"
-            aria-label="Закрыть Slidebrary"
-          >
-            <img src="assets/ui/close.svg" alt="" />
-          </button>
-        </div>
       </header>
 
       <div class="workspace">
@@ -123,6 +115,67 @@
             </button>
           </div>
         </main>
+      </div>
+    </div>
+
+    <div id="accountOverlay" class="account-overlay" hidden>
+      <div class="account-shell">
+        <p class="account-brand">personal office</p>
+        <section
+          class="account-card"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="accountTitle"
+        >
+          <h2 id="accountTitle">Личный кабинет</h2>
+          <form id="accountForm" class="account-form">
+            <label class="account-field">
+              <span>Почта</span>
+              <input
+                id="accountEmail"
+                name="email"
+                type="email"
+                placeholder="name@company.ru"
+                autocomplete="email"
+                required
+              />
+            </label>
+
+            <div class="account-field">
+              <span>Выберите папку на диске с личными шаблонами</span>
+              <button id="folderPickerButton" class="folder-picker" type="button">
+                <span class="folder-path">//… Выбрать…</span>
+              </button>
+              <input
+                id="folderInput"
+                class="visually-hidden"
+                type="file"
+                webkitdirectory
+                directory
+                multiple
+                tabindex="-1"
+                aria-hidden="true"
+              />
+            </div>
+
+            <label class="account-field">
+              <span>Последний вход</span>
+              <input id="lastLoginField" type="text" value="Ещё не выполнялся" readonly />
+            </label>
+
+            <label class="account-field">
+              <span>Файл индексации данных. Обновлен:</span>
+              <input id="indexUpdatedField" type="text" value="Файл не выбран" readonly />
+            </label>
+
+            <div class="account-actions">
+              <button id="cancelAccountButton" class="button button-secondary" type="button">
+                Отменить
+              </button>
+              <button class="button button-primary" type="submit">Сохранить</button>
+            </div>
+          </form>
+        </section>
       </div>
     </div>
 
