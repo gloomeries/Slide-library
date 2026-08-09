@@ -54,66 +54,227 @@
             </button>
           </div>
 
-          <div class="search-row">
-            <label class="search-field" for="searchInput">
-              <img src="assets/ui/search.svg" alt="" />
-              <input id="searchInput" type="search" placeholder="Поиск" autocomplete="off" />
-            </label>
-            <button
-              id="filterButton"
-              class="icon-button filter-button"
-              type="button"
-              aria-label="Открыть фильтры"
-            >
-              <img src="assets/ui/filter.svg" alt="" />
-              <span id="filterBadge" class="filter-badge" hidden></span>
-            </button>
-          </div>
+          <div id="libraryView" class="library-view">
+            <div class="search-row">
+              <label class="search-field" for="searchInput">
+                <img src="assets/ui/search.svg" alt="" />
+                <input id="searchInput" type="search" placeholder="Поиск" autocomplete="off" />
+              </label>
+              <button
+                id="filterButton"
+                class="icon-button filter-button"
+                type="button"
+                aria-label="Открыть фильтры"
+              >
+                <img src="assets/ui/filter.svg" alt="" />
+                <span id="filterBadge" class="filter-badge" hidden></span>
+              </button>
+            </div>
 
-          <div class="content-toolbar">
-            <p id="sectionHint">Выберите макет для вашего слайда</p>
-            <div class="toolbar-actions">
-              <button
-                id="sortButton"
-                class="icon-button"
-                type="button"
-                aria-label="Изменить сортировку"
-                title="Сортировка"
-              >
-                <img src="assets/ui/sort.svg" alt="" />
+            <div class="content-toolbar">
+              <p id="sectionHint">Выберите макет для вашего слайда</p>
+              <div class="toolbar-actions">
+                <button
+                  id="sortButton"
+                  class="icon-button"
+                  type="button"
+                  aria-label="Изменить сортировку"
+                  title="Сортировка"
+                >
+                  <img src="assets/ui/sort.svg" alt="" />
+                </button>
+                <button
+                  id="viewButton"
+                  class="icon-button"
+                  type="button"
+                  aria-label="Переключить вид"
+                  title="Плитка или список"
+                >
+                  <img src="assets/ui/list.svg" alt="" />
+                </button>
+                <button
+                  id="shareButton"
+                  class="icon-button"
+                  type="button"
+                  aria-label="Поделиться материалами"
+                  title="Поделиться"
+                >
+                  <img src="assets/ui/share.svg" alt="" />
+                </button>
+              </div>
+            </div>
+
+            <div id="statusRegion" class="status-region" role="status" aria-live="polite"></div>
+            <div id="library" class="library-grid" aria-label="Материалы библиотеки"></div>
+
+            <div class="selection-actions">
+              <button id="clearSelectionButton" class="button button-secondary" type="button">
+                Отменить
               </button>
               <button
-                id="viewButton"
-                class="icon-button"
+                id="insertSelectionButton"
+                class="button button-primary"
                 type="button"
-                aria-label="Переключить вид"
-                title="Плитка или список"
+                disabled
               >
-                <img src="assets/ui/list.svg" alt="" />
-              </button>
-              <button
-                id="shareButton"
-                class="icon-button"
-                type="button"
-                aria-label="Поделиться материалами"
-                title="Поделиться"
-              >
-                <img src="assets/ui/share.svg" alt="" />
+                Добавить
               </button>
             </div>
           </div>
 
-          <div id="statusRegion" class="status-region" role="status" aria-live="polite"></div>
-          <div id="library" class="library-grid" aria-label="Материалы библиотеки"></div>
+          <section
+            id="templateView"
+            class="template-view"
+            aria-labelledby="templateViewTitle"
+            hidden
+          >
+            <h2 id="templateViewTitle">Предложить свой файл в базу</h2>
+            <form id="templateForm" class="template-form">
+              <button id="templateDropzone" class="template-dropzone" type="button">
+                <span class="upload-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M12 16V7m0 0-4 4m4-4 4 4" />
+                    <path d="M7 17H6a4 4 0 0 1-.5-8A6.5 6.5 0 0 1 18 10a3.5 3.5 0 0 1 0 7h-1" />
+                  </svg>
+                </span>
+                <span class="upload-copy">
+                  <strong id="templateFileLabel">Загрузить файл</strong>
+                  <span>Поддерживаемые форматы: pptx, jpg и png</span>
+                  <span>Вес: до 20 Мб.</span>
+                </span>
+              </button>
+              <input
+                id="templateFileInput"
+                class="visually-hidden"
+                name="file"
+                type="file"
+                accept=".ppt,.pptx,.jpg,.jpeg,.png"
+                tabindex="-1"
+              />
 
-          <div class="selection-actions">
-            <button id="clearSelectionButton" class="button button-secondary" type="button">
-              Отменить
-            </button>
-            <button id="insertSelectionButton" class="button button-primary" type="button" disabled>
-              Добавить
-            </button>
-          </div>
+              <label class="template-name-field">
+                <span class="visually-hidden">Название шаблона</span>
+                <input
+                  id="templateNameInput"
+                  name="title"
+                  type="text"
+                  placeholder="Добавьте название шаблона"
+                  autocomplete="off"
+                  required
+                />
+              </label>
+
+              <div class="template-metadata-grid">
+                <label>
+                  <span>Тип контента</span>
+                  <select name="type">
+                    <option value="Презентация">Презентация</option>
+                    <option value="Фотография">Фотография</option>
+                    <option value="Иллюстрация">Иллюстрация</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Продукт</span>
+                  <select name="product">
+                    <option value="Общее">Общее</option>
+                    <option value="Сферум">Сферум</option>
+                    <option value="MAX">MAX</option>
+                    <option value="VK">VK</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Цель</span>
+                  <select name="goal">
+                    <option value="">Любая</option>
+                    <option value="Информировать">Информировать</option>
+                    <option value="Обучить">Обучить</option>
+                    <option value="Продать">Продать</option>
+                    <option value="Отчитаться">Отчитаться</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Формат</span>
+                  <select name="format">
+                    <option value="16×9">16x9</option>
+                    <option value="4×3">4x3</option>
+                    <option value="1×1">1x1</option>
+                    <option value="9×16">9x16</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Структура</span>
+                  <select name="structure">
+                    <option value="">Любая</option>
+                    <option value="Титульный слайд">Титульный слайд</option>
+                    <option value="Аналитический слайд">Аналитический слайд</option>
+                    <option value="Схема">Схема</option>
+                    <option value="План">План</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Тип выступления</span>
+                  <select name="presentationType">
+                    <option value="Отчетный">Отчетный</option>
+                    <option value="Обучающий">Обучающий</option>
+                    <option value="Продающий">Продающий</option>
+                    <option value="Информационный">Информационный</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Визуал</span>
+                  <select name="visual">
+                    <option value="">Не определен</option>
+                    <option value="Инфографика">Инфографика</option>
+                    <option value="Диаграмма">Диаграмма</option>
+                    <option value="Фотография">Фотография</option>
+                    <option value="Текст">Текст</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Стиль оформления</span>
+                  <select name="style">
+                    <option value="Светлая тема">Светлая тема</option>
+                    <option value="Темная тема">Темная тема</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="template-tags-field">
+                <div class="template-tags-label">
+                  <span>Хештеги</span>
+                  <span id="templateTagCounter">0 / 25</span>
+                </div>
+                <div id="templateTagsEditor" class="template-tags-editor">
+                  <div id="templateTags" class="template-tags"></div>
+                  <input
+                    id="templateTagInput"
+                    type="text"
+                    placeholder="Новый хештег"
+                    autocomplete="off"
+                  />
+                </div>
+              </div>
+
+              <label class="template-ai-checkbox">
+                <input name="aiGenerated" type="checkbox" />
+                <span>ИИ-генерация</span>
+              </label>
+
+              <div class="template-actions">
+                <button id="cancelTemplateButton" class="button button-secondary" type="button">
+                  Отменить
+                </button>
+                <button
+                  id="submitTemplateButton"
+                  class="button button-primary"
+                  type="submit"
+                  disabled
+                >
+                  Добавить
+                </button>
+              </div>
+            </form>
+          </section>
         </main>
       </div>
     </div>

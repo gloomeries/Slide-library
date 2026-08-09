@@ -8,6 +8,7 @@ const STORAGE_KEYS = {
   favorites: "slidebrary:favorites",
   recent: "slidebrary:recent",
   account: "slidebrary:account",
+  proposals: "slidebrary:proposals",
 };
 
 const materials = [
@@ -254,6 +255,8 @@ const state = {
   inserting: false,
   sidebarCollapsed: false,
   account: readStoredObject(STORAGE_KEYS.account),
+  templateFile: null,
+  templateTags: [],
 };
 
 const elements = {};
@@ -342,6 +345,18 @@ function cacheElements() {
     "collapseButton",
     "profileButton",
     "searchInput",
+    "libraryView",
+    "templateView",
+    "templateForm",
+    "templateDropzone",
+    "templateFileInput",
+    "templateFileLabel",
+    "templateNameInput",
+    "templateTagInput",
+    "templateTags",
+    "templateTagCounter",
+    "cancelTemplateButton",
+    "submitTemplateButton",
     "filterButton",
     "filterBadge",
     "sortButton",
@@ -530,6 +545,9 @@ function renderLibrary() {
 }
 
 function renderControls() {
+  const isTemplateView = state.section === "templates";
+  elements.libraryView.hidden = isTemplateView;
+  elements.templateView.hidden = !isTemplateView;
   elements.sectionHint.textContent = sectionHints[state.section];
   elements.library.dataset.view = state.view;
   document.getElementById("app").classList.toggle("is-sidebar-collapsed", state.sidebarCollapsed);
@@ -565,6 +583,70 @@ function renderControls() {
   });
 }
 
+function updateTemplateSubmitState() {
+  elements.submitTemplateButton.disabled =
+    !state.templateFile || !elements.templateNameInput.value.trim();
+}
+
+function renderTemplateTags() {
+  elements.templateTags.innerHTML = state.templateTags
+    .map(
+      (tag, index) => `
+        <span class="template-tag">
+          <span>${escapeHtml(tag)}</span>
+          <button type="button" data-tag-index="${index}" aria-label="Удалить хештег ${escapeHtml(tag)}">×</button>
+        </span>`
+    )
+    .join("");
+  elements.templateTagCounter.textContent = `${state.templateTags.length} / 25`;
+  elements.templateTagInput.disabled = state.templateTags.length >= 25;
+}
+
+function addTemplateTag(rawValue) {
+  const tag = rawValue.trim().replace(/^#/, "");
+  if (!tag || state.templateTags.length >= 25) return;
+  if (
+    !state.templateTags.some(
+      (existing) => existing.toLocaleLowerCase("ru") === tag.toLocaleLowerCase("ru")
+    )
+  ) {
+    state.templateTags.push(tag);
+  }
+  elements.templateTagInput.value = "";
+  renderTemplateTags();
+}
+
+function setTemplateFile(file) {
+  const allowedExtension = /\.(pptx?|jpe?g|png)$/i.test(file?.name || "");
+  const allowedSize = file && file.size <= 20 * 1024 * 1024;
+  if (!allowedExtension || !allowedSize) {
+    state.templateFile = null;
+    elements.templateFileLabel.textContent = "Загрузить файл";
+    elements.templateDropzone.classList.remove("has-file");
+    showToast(
+      !allowedExtension
+        ? "Выберите файл pptx, jpg или png"
+        : "Размер файла не должен превышать 20 Мб"
+    );
+    updateTemplateSubmitState();
+    return;
+  }
+  state.templateFile = file;
+  elements.templateFileLabel.textContent = file.name;
+  elements.templateDropzone.classList.add("has-file");
+  updateTemplateSubmitState();
+}
+
+function resetTemplateForm() {
+  elements.templateForm.reset();
+  state.templateFile = null;
+  state.templateTags = [];
+  elements.templateFileLabel.textContent = "Загрузить файл";
+  elements.templateDropzone.classList.remove("has-file", "is-dragover");
+  renderTemplateTags();
+  updateTemplateSubmitState();
+}
+
 function render() {
   renderNavigation();
   renderControls();
@@ -576,9 +658,13 @@ function getActiveFilterCount() {
 }
 
 function selectSection(sectionId) {
+  const isLeavingTemplateView = state.section === "templates" && sectionId !== "templates";
   state.section = sectionId;
+  if (sectionId === "templates") state.sidebarCollapsed = true;
+  else if (isLeavingTemplateView) state.sidebarCollapsed = false;
   state.selected.clear();
   render();
+  window.scrollTo(0, 0);
 }
 
 function toggleFavorite(id) {
@@ -763,6 +849,65 @@ function handleLibraryKeydown(event) {
 }
 
 function bindEvents() {
+  elements.templateDropzone.addEventListener("click", () => elements.templateFileInput.click());
+  elements.templateFileInput.addEventListener("change", (event) => {
+    const file = event.target.files?.[0];
+    if (file) setTemplateFile(file);
+  });
+  elements.templateDropzone.addEventListener("dragover", (event) => {
+    event.preventDefault();
+    elements.templateDropzone.classList.add("is-dragover");
+  });
+  elements.templateDropzone.addEventListener("dragleave", () =>
+    elements.templateDropzone.classList.remove("is-dragover")
+  );
+  elements.templateDropzone.addEventListener("drop", (event) => {
+    event.preventDefault();
+    elements.templateDropzone.classList.remove("is-dragover");
+    const file = event.dataTransfer?.files?.[0];
+    if (file) setTemplateFile(file);
+  });
+  elements.templateNameInput.addEventListener("input", updateTemplateSubmitState);
+  elements.templateTagInput.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== ",") return;
+    event.preventDefault();
+    addTemplateTag(event.target.value);
+  });
+  elements.templateTagInput.addEventListener("blur", (event) => addTemplateTag(event.target.value));
+  elements.templateTags.addEventListener("click", (event) => {
+    const removeButton = event.target.closest("[data-tag-index]");
+    if (!removeButton) return;
+    state.templateTags.splice(Number(removeButton.dataset.tagIndex), 1);
+    renderTemplateTags();
+  });
+  elements.cancelTemplateButton.addEventListener("click", resetTemplateForm);
+  elements.templateForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    if (!state.templateFile || !elements.templateNameInput.value.trim()) return;
+    const data = new FormData(elements.templateForm);
+    const proposals = readStoredArray(STORAGE_KEYS.proposals);
+    proposals.unshift({
+      id: `proposal-${Date.now()}`,
+      fileName: state.templateFile.name,
+      fileSize: state.templateFile.size,
+      title: elements.templateNameInput.value.trim(),
+      type: data.get("type") || "",
+      product: data.get("product") || "",
+      goal: data.get("goal") || "",
+      format: data.get("format") || "",
+      structure: data.get("structure") || "",
+      presentationType: data.get("presentationType") || "",
+      visual: data.get("visual") || "",
+      style: data.get("style") || "",
+      tags: [...state.templateTags],
+      aiGenerated: data.get("aiGenerated") === "on",
+      createdAt: new Date().toISOString(),
+    });
+    writeStoredArray(STORAGE_KEYS.proposals, proposals.slice(0, 50));
+    resetTemplateForm();
+    showToast("Шаблон добавлен в список предложений");
+  });
+
   elements.profileButton.addEventListener("click", openAccount);
   elements.cancelAccountButton.addEventListener("click", closeAccount);
   elements.folderPickerButton.addEventListener("click", () => elements.folderInput.click());
@@ -902,6 +1047,7 @@ function initialize() {
   cacheElements();
   populateFilterOptions();
   bindEvents();
+  renderTemplateTags();
   render();
   window.setTimeout(() => {
     state.loading = false;
