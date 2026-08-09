@@ -154,13 +154,11 @@ select:focus-visible,
   font-size: 14px;
 }
 
-.collapse-button svg {
-  width: 26px;
-  height: 22px;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 2.2;
+.collapse-icon {
+  display: block;
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
 }
 
 .collapse-button:hover {
@@ -229,7 +227,7 @@ select:focus-visible,
   padding: 0 14px;
 }
 
-.app-shell.is-sidebar-collapsed .collapse-button svg {
+.app-shell.is-sidebar-collapsed .collapse-icon {
   transform: rotate(180deg);
 }
 
