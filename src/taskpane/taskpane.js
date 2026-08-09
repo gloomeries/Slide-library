@@ -123,6 +123,89 @@ const materials = [
   },
 ];
 
+const materialFilterMetadata = {
+  title: {
+    goal: "Информировать",
+    structure: "Титульный слайд",
+    presentationType: "Информационный",
+    visual: "Текст",
+    hashtags: "бизнес",
+    aiGenerated: false,
+  },
+  executive_summary: {
+    goal: "Отчитаться",
+    structure: "Аналитический слайд",
+    presentationType: "Отчетный",
+    visual: "Инфографика",
+    hashtags: "бизнес",
+    aiGenerated: false,
+  },
+  market_analysis: {
+    goal: "Отчитаться",
+    structure: "Аналитический слайд",
+    presentationType: "Отчетный",
+    visual: "Диаграмма",
+    hashtags: "аналитика",
+    aiGenerated: false,
+  },
+  marketing_plan: {
+    goal: "Продать",
+    structure: "План",
+    presentationType: "Продающий",
+    visual: "Инфографика",
+    hashtags: "маркетинг",
+    aiGenerated: true,
+  },
+  prototypes: {
+    goal: "Обучить",
+    structure: "Схема",
+    presentationType: "Обучающий",
+    visual: "Инфографика",
+    hashtags: "продукт",
+    aiGenerated: true,
+  },
+  risk_analysis: {
+    goal: "Отчитаться",
+    structure: "Аналитический слайд",
+    presentationType: "Отчетный",
+    visual: "Диаграмма",
+    hashtags: "аналитика",
+    aiGenerated: false,
+  },
+  roadmap: {
+    goal: "Информировать",
+    structure: "План",
+    presentationType: "Информационный",
+    visual: "Инфографика",
+    hashtags: "продукт",
+    aiGenerated: false,
+  },
+  target_audience: {
+    goal: "Продать",
+    structure: "Аналитический слайд",
+    presentationType: "Продающий",
+    visual: "Диаграмма",
+    hashtags: "маркетинг",
+    aiGenerated: false,
+  },
+  team: {
+    goal: "Информировать",
+    structure: "Схема",
+    presentationType: "Информационный",
+    visual: "Фотография",
+    hashtags: "бизнес",
+    aiGenerated: false,
+  },
+  business_process: {
+    goal: "Обучить",
+    structure: "Схема",
+    presentationType: "Обучающий",
+    visual: "Инфографика",
+    hashtags: "бизнес",
+    aiGenerated: false,
+  },
+};
+
 const sections = [
   { id: "favorites", label: "Избранное", icon: "heart" },
   { id: "presentations", label: "Презентации", icon: "presentation" },
@@ -151,7 +234,18 @@ const state = {
   query: "",
   view: "grid",
   sort: "default",
-  filters: { type: "", product: "", format: "", style: "" },
+  filters: {
+    type: "",
+    product: "",
+    goal: "",
+    format: "",
+    structure: "",
+    presentationType: "",
+    visual: "",
+    style: "",
+    hashtags: "",
+    aiGenerated: false,
+  },
   favorites: new Set(readStoredArray(STORAGE_KEYS.favorites)),
   recent: readStoredArray(STORAGE_KEYS.recent),
   selected: new Set(),
@@ -311,10 +405,18 @@ function populateFilterOptions() {
     select.insertAdjacentHTML(
       "beforeend",
       options
-        .map((option) => `<option value="${escapeHtml(option)}">${escapeHtml(option)}</option>`)
+        .map(
+          (option) =>
+            `<option value="${escapeHtml(option)}">${escapeHtml(field === "format" ? option.replace("×", "x") : option)}</option>`
+        )
         .join("")
     );
   });
+}
+
+function getMaterialFilterValue(item, field) {
+  if (field in item) return item[field];
+  return materialFilterMetadata[item.id]?.[field];
 }
 
 function getVisibleMaterials() {
@@ -337,7 +439,8 @@ function getVisibleMaterials() {
   }
 
   Object.entries(state.filters).forEach(([field, value]) => {
-    if (value) result = result.filter((item) => item[field] === value);
+    if (!value) return;
+    result = result.filter((item) => getMaterialFilterValue(item, field) === value);
   });
 
   if (state.sort === "title-asc") {
@@ -511,10 +614,11 @@ function closePreview() {
 
 function openFilters() {
   Object.entries(state.filters).forEach(([field, value]) => {
-    elements.filterForm.elements[field].value = value;
+    const control = elements.filterForm.elements[field];
+    if (field === "aiGenerated") control.checked = Boolean(value);
+    else control.value = value;
   });
   elements.filterOverlay.hidden = false;
-  elements.closeFiltersButton.focus();
 }
 
 function closeFilters() {
@@ -552,7 +656,18 @@ function getFolderNameFromFiles(files) {
 }
 
 function resetFilters() {
-  state.filters = { type: "", product: "", format: "", style: "" };
+  state.filters = {
+    type: "",
+    product: "",
+    goal: "",
+    format: "",
+    structure: "",
+    presentationType: "",
+    visual: "",
+    style: "",
+    hashtags: "",
+    aiGenerated: false,
+  };
   elements.filterForm.reset();
   render();
 }
@@ -705,8 +820,19 @@ function bindEvents() {
     event.preventDefault();
     const data = new FormData(elements.filterForm);
     state.filters = Object.fromEntries(
-      ["type", "product", "format", "style"].map((field) => [field, data.get(field) || ""])
+      [
+        "type",
+        "product",
+        "goal",
+        "format",
+        "structure",
+        "presentationType",
+        "visual",
+        "style",
+        "hashtags",
+      ].map((field) => [field, data.get(field) || ""])
     );
+    state.filters.aiGenerated = data.get("aiGenerated") === "on";
     closeFilters();
     render();
   });

@@ -179,50 +179,107 @@
       </div>
     </div>
 
-    <div id="filterOverlay" class="overlay" hidden>
-      <section class="filter-drawer" role="dialog" aria-modal="true" aria-labelledby="filterTitle">
-        <header class="drawer-header">
-          <button id="resetFiltersButton" class="text-button" type="button">Очистить</button>
-          <h2 id="filterTitle">Фильтры</h2>
-          <button
-            id="closeFiltersButton"
-            class="icon-button"
-            type="button"
-            aria-label="Закрыть фильтры"
-          >
-            <img src="assets/ui/close.svg" alt="" />
-          </button>
-        </header>
-        <form id="filterForm" class="filter-form">
-          <label>
-            <span>По типу контента</span>
-            <select name="type">
-              <option value="">Любой</option>
-            </select>
-          </label>
-          <label>
-            <span>По продуктам</span>
-            <select name="product">
-              <option value="">Любой</option>
-            </select>
-          </label>
-          <label>
-            <span>По формату</span>
-            <select name="format">
-              <option value="">Любой</option>
-            </select>
-          </label>
-          <label>
-            <span>По стилю оформления</span>
-            <select name="style">
-              <option value="">Любой</option>
-            </select>
-          </label>
-          <button class="button button-primary filter-submit" type="submit">
-            Показать результаты
-          </button>
-        </form>
-      </section>
+    <div id="filterOverlay" class="filter-overlay" hidden>
+      <div class="filter-page">
+        <p class="filter-brand">filtres Modal Page</p>
+        <section class="filter-modal" role="dialog" aria-modal="true" aria-labelledby="filterTitle">
+          <header class="filter-header">
+            <button id="resetFiltersButton" class="text-button" type="button">Очистить</button>
+            <h2 id="filterTitle">Фильтры</h2>
+            <button
+              id="closeFiltersButton"
+              class="filter-close"
+              type="button"
+              aria-label="Закрыть фильтры"
+            >
+              ×
+            </button>
+          </header>
+          <form id="filterForm" class="filter-form">
+            <label>
+              <span>По типу контента</span>
+              <select name="type">
+                <option value="">Любой</option>
+              </select>
+            </label>
+            <label>
+              <span>По продуктам</span>
+              <select name="product">
+                <option value="">Любой</option>
+              </select>
+            </label>
+            <label>
+              <span>По цели</span>
+              <select name="goal">
+                <option value="">Любая</option>
+                <option value="Информировать">Информировать</option>
+                <option value="Обучить">Обучить</option>
+                <option value="Продать">Продать</option>
+                <option value="Отчитаться">Отчитаться</option>
+              </select>
+            </label>
+            <label>
+              <span>По формату</span>
+              <select name="format">
+                <option value="">Любой</option>
+              </select>
+            </label>
+            <label>
+              <span>По структуре</span>
+              <select name="structure">
+                <option value="">Любая</option>
+                <option value="Титульный слайд">Титульный слайд</option>
+                <option value="Аналитический слайд">Аналитический слайд</option>
+                <option value="Схема">Схема</option>
+                <option value="План">План</option>
+              </select>
+            </label>
+            <label>
+              <span>По типу выступления</span>
+              <select name="presentationType">
+                <option value="">Любой</option>
+                <option value="Отчетный">Отчетный</option>
+                <option value="Обучающий">Обучающий</option>
+                <option value="Продающий">Продающий</option>
+                <option value="Информационный">Информационный</option>
+              </select>
+            </label>
+            <label>
+              <span>По визуалу</span>
+              <select name="visual">
+                <option value="">Любой</option>
+                <option value="Инфографика">Инфографика</option>
+                <option value="Диаграмма">Диаграмма</option>
+                <option value="Фотография">Фотография</option>
+                <option value="Текст">Текст</option>
+              </select>
+            </label>
+            <label>
+              <span>По стилю оформления</span>
+              <select name="style">
+                <option value="">Любой</option>
+              </select>
+            </label>
+            <label>
+              <span>По хештегам</span>
+              <select name="hashtags">
+                <option value="">Любые</option>
+                <option value="аналитика">Аналитика, исследование, данные</option>
+                <option value="маркетинг">Маркетинг, аудитория, кампания</option>
+                <option value="продукт">Продукт, прототип, roadmap</option>
+                <option value="бизнес">Бизнес, процесс, команда</option>
+              </select>
+            </label>
+            <label class="filter-checkbox">
+              <input name="aiGenerated" type="checkbox" />
+              <span>ИИ-генерации</span>
+            </label>
+            <button class="button button-primary filter-submit" type="submit">
+              Показать результаты
+            </button>
+          </form>
+        </section>
+      </div>
     </div>
 
     <div id="previewOverlay" class="overlay preview-overlay" hidden>
