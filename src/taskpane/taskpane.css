@@ -197,28 +197,22 @@ select:focus-visible,
 
 .nav-icon-wrap {
   display: grid;
-  width: 38px;
-  height: 38px;
+  width: 42px;
+  height: 42px;
   place-items: center;
-  border-radius: 10px;
-  color: currentColor;
 }
 
 .nav-button:hover .nav-icon-wrap,
 .nav-button.is-active .nav-icon-wrap {
-  color: var(--accent);
-  background: #f1f7ff;
-  box-shadow: 0 5px 12px rgba(39, 136, 233, 0.16);
+  background: transparent;
+  box-shadow: none;
 }
 
 .nav-icon {
-  width: 23px;
-  height: 23px;
-  fill: none;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 1.8;
+  display: block;
+  width: 42px;
+  height: 49px;
+  object-fit: contain;
 }
 
 .nav-label {

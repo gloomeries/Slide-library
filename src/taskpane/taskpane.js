@@ -208,14 +208,22 @@ const materialFilterMetadata = {
 };
 
 const sections = [
-  { id: "favorites", label: "Избранное", icon: "heart" },
-  { id: "presentations", label: "Презентации", icon: "presentation" },
-  { id: "photos", label: "Фотографии", icon: "camera" },
-  { id: "illustrations", label: "Иллюстрации", icon: "image" },
-  { id: "icons", label: "Иконки", icon: "icons" },
-  { id: "logos", label: "Логотипы", icon: "logo" },
-  { id: "templates", label: "Шаблоны", icon: "templates" },
-  { id: "assistant", label: "ИИ-ассистент", icon: "assistant" },
+  { id: "favorites", label: "Избранное", icon: "assets/ui/menu/like.svg" },
+  { id: "presentations", label: "Презентации", icon: "assets/ui/menu/menu/time/active.svg" },
+  { id: "photos", label: "Фотографии", icon: "assets/ui/menu/menu/camera/active.svg" },
+  {
+    id: "illustrations",
+    label: "Иллюстрации",
+    icon: "assets/ui/menu/menu/picture-pen/active.svg",
+  },
+  { id: "icons", label: "Иконки", icon: "assets/ui/menu/menu/bullet/active.svg" },
+  { id: "logos", label: "Логотипы", icon: "assets/ui/menu/menu/style/active.svg" },
+  {
+    id: "templates",
+    label: "Шаблоны",
+    icon: "assets/ui/menu/menu/grid-rectangle/active.svg",
+  },
+  { id: "assistant", label: "ИИ-ассистент", icon: "assets/ui/menu/menu/ai/active.svg" },
 ];
 
 const sectionHints = {
@@ -320,23 +328,8 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
-function getSectionIcon(name) {
-  const icons = {
-    heart:
-      '<path d="M12 20.5S4 16 4 9.8A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 8 2.2c0 6.2-8 10.7-8 10.7Z"/>',
-    presentation:
-      '<rect x="4" y="4" width="16" height="13" rx="2"/><path d="M8 20l4-3 4 3M8 9h8M8 12h5"/>',
-    camera: '<path d="M4 8.5h3l1.4-2h7.2l1.4 2h3v10H4z"/><circle cx="12" cy="13.5" r="3.2"/>',
-    image:
-      '<rect x="4" y="4" width="16" height="16" rx="2"/><circle cx="9" cy="9" r="1.5"/><path d="m6.5 17 4-4 2.5 2.5 2-2 2.5 3"/>',
-    icons:
-      '<rect x="4" y="4" width="6" height="6" rx="1.5"/><circle cx="17" cy="7" r="3"/><path d="m7 14-3 6h6z"/><path d="m14 14 6 6m0-6-6 6"/>',
-    logo: '<rect x="4" y="4" width="16" height="16" rx="4"/><path d="m8 17 4-10 4 10M9.5 13h5"/>',
-    templates: '<rect x="3.5" y="4" width="17" height="16" rx="2"/><path d="M3.5 10h17M10 10v10"/>',
-    assistant:
-      '<rect x="5" y="5" width="14" height="14" rx="3"/><path d="M9 2v3m6-3v3M9 19v3m6-3v3M2 9h3m-3 6h3m14-6h3m-3 6h3M9 10.5h6M9 14h4"/>',
-  };
-  return `<svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">${icons[name] || icons.templates}</svg>`;
+function getSectionIcon(path) {
+  return `<img class="nav-icon" src="${escapeHtml(path)}" alt="" aria-hidden="true" />`;
 }
 
 function cacheElements() {
