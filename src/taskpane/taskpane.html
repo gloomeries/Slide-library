@@ -15,14 +15,34 @@
           <img src="assets/ui/user.svg" alt="" />
         </button>
         <h1>Slidebrary</h1>
-        <button class="window-menu" type="button" aria-label="Меню приложения">
-          <img src="assets/ui/more.svg" alt="" />
-        </button>
+        <div class="window-actions" aria-label="Управление приложением">
+          <button id="moreButton" class="window-action" type="button" aria-label="Меню приложения">
+            <img src="assets/ui/more.svg" alt="" />
+          </button>
+          <button
+            id="closeAppButton"
+            class="window-action window-close"
+            type="button"
+            aria-label="Закрыть Slidebrary"
+          >
+            <img src="assets/ui/close.svg" alt="" />
+          </button>
+        </div>
       </header>
 
       <div class="workspace">
         <aside class="sidebar" aria-label="Разделы библиотеки">
-          <button class="collapse-button" type="button" aria-label="Свернуть меню">›</button>
+          <button
+            id="collapseButton"
+            class="collapse-button"
+            type="button"
+            aria-label="Свернуть меню"
+          >
+            <svg aria-hidden="true" viewBox="0 0 26 22" fill="none">
+              <path d="M9.5 3 2.5 11l7 8M3.5 11H23M14 5h9M14 17h9" />
+            </svg>
+            <span>Свернуть</span>
+          </button>
           <nav id="sectionNav" class="section-nav"></nav>
         </aside>
 
@@ -78,6 +98,15 @@
                 title="Плитка или список"
               >
                 <img src="assets/ui/list.svg" alt="" />
+              </button>
+              <button
+                id="shareButton"
+                class="icon-button"
+                type="button"
+                aria-label="Поделиться материалами"
+                title="Поделиться"
+              >
+                <img src="assets/ui/share.svg" alt="" />
               </button>
             </div>
           </div>

@@ -1,4 +1,4 @@
-/* global Office, PowerPoint, FormData, btoa, document, fetch, localStorage, window */
+/* global Office, PowerPoint, FormData, btoa, document, fetch, localStorage, navigator, window */
 
 import "core-js/stable";
 import "regenerator-runtime/runtime";
@@ -123,19 +123,29 @@ const materials = [
 ];
 
 const sections = [
-  { id: "favorites", label: "Избранное", icon: "♡" },
-  { id: "recent", label: "Недавние", icon: "◷" },
-  { id: "templates", label: "Шаблоны", icon: "▦" },
+  { id: "favorites", label: "Избранное", icon: "heart" },
+  { id: "presentations", label: "Презентации", icon: "presentation" },
+  { id: "photos", label: "Фотографии", icon: "camera" },
+  { id: "illustrations", label: "Иллюстрации", icon: "image" },
+  { id: "icons", label: "Иконки", icon: "icons" },
+  { id: "logos", label: "Логотипы", icon: "logo" },
+  { id: "templates", label: "Шаблоны", icon: "templates" },
+  { id: "assistant", label: "ИИ-ассистент", icon: "assistant" },
 ];
 
 const sectionHints = {
   favorites: "Избранные материалы",
-  recent: "Недавно добавленные материалы",
+  presentations: "Выберите макет для вашего слайда",
+  photos: "Выберите фотографию для вашего слайда",
+  illustrations: "Выберите иллюстрацию для вашего слайда",
+  icons: "Выберите иконку для вашего слайда",
+  logos: "Выберите логотип для вашего слайда",
   templates: "Выберите макет для вашего слайда",
+  assistant: "Создайте материал с помощью ИИ-ассистента",
 };
 
 const state = {
-  section: "templates",
+  section: "presentations",
   tab: "public",
   query: "",
   view: "grid",
@@ -147,6 +157,7 @@ const state = {
   previewId: null,
   loading: true,
   inserting: false,
+  sidebarCollapsed: false,
 };
 
 const elements = {};
@@ -178,14 +189,37 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
+function getSectionIcon(name) {
+  const icons = {
+    heart:
+      '<path d="M12 20.5S4 16 4 9.8A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 8 2.2c0 6.2-8 10.7-8 10.7Z"/>',
+    presentation:
+      '<rect x="4" y="4" width="16" height="13" rx="2"/><path d="M8 20l4-3 4 3M8 9h8M8 12h5"/>',
+    camera: '<path d="M4 8.5h3l1.4-2h7.2l1.4 2h3v10H4z"/><circle cx="12" cy="13.5" r="3.2"/>',
+    image:
+      '<rect x="4" y="4" width="16" height="16" rx="2"/><circle cx="9" cy="9" r="1.5"/><path d="m6.5 17 4-4 2.5 2.5 2-2 2.5 3"/>',
+    icons:
+      '<rect x="4" y="4" width="6" height="6" rx="1.5"/><circle cx="17" cy="7" r="3"/><path d="m7 14-3 6h6z"/><path d="m14 14 6 6m0-6-6 6"/>',
+    logo: '<rect x="4" y="4" width="16" height="16" rx="4"/><path d="m8 17 4-10 4 10M9.5 13h5"/>',
+    templates: '<rect x="3.5" y="4" width="17" height="16" rx="2"/><path d="M3.5 10h17M10 10v10"/>',
+    assistant:
+      '<rect x="5" y="5" width="14" height="14" rx="3"/><path d="M9 2v3m6-3v3M9 19v3m6-3v3M2 9h3m-3 6h3m14-6h3m-3 6h3M9 10.5h6M9 14h4"/>',
+  };
+  return `<svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">${icons[name] || icons.templates}</svg>`;
+}
+
 function cacheElements() {
   [
     "sectionNav",
+    "collapseButton",
     "searchInput",
     "filterButton",
     "filterBadge",
     "sortButton",
     "viewButton",
+    "shareButton",
+    "moreButton",
+    "closeAppButton",
     "sectionHint",
     "statusRegion",
     "library",
@@ -218,7 +252,10 @@ function renderNavigation() {
           data-section="${section.id}"
           aria-label="${escapeHtml(section.label)}"
           title="${escapeHtml(section.label)}"
-        >${section.icon}</button>
+        >
+          <span class="nav-icon-wrap">${getSectionIcon(section.icon)}</span>
+          <span class="nav-label">${escapeHtml(section.label)}</span>
+        </button>
       `
     )
     .join("");
@@ -246,12 +283,7 @@ function getVisibleMaterials() {
   if (state.section === "favorites") {
     result = result.filter((item) => state.favorites.has(item.id));
   }
-  if (state.section === "recent") {
-    const recentOrder = new Map(state.recent.map((id, index) => [id, index]));
-    result = result
-      .filter((item) => recentOrder.has(item.id))
-      .sort((a, b) => recentOrder.get(a.id) - recentOrder.get(b.id));
-  }
+  if (!["favorites", "presentations", "templates"].includes(state.section)) result = [];
 
   const normalizedQuery = state.query.trim().toLocaleLowerCase("ru");
   if (normalizedQuery) {
@@ -281,8 +313,15 @@ function getEmptyMessage() {
   }
   if (state.section === "favorites")
     return "В избранном пока ничего нет. Нажмите на сердечко у нужного материала.";
-  if (state.section === "recent")
-    return "Здесь появятся материалы, которые вы вставляли в презентацию.";
+  if (state.section === "photos")
+    return "Раздел фотографий готов. Материалы добавим на следующем этапе.";
+  if (state.section === "illustrations")
+    return "Раздел иллюстраций готов. Материалы добавим на следующем этапе.";
+  if (state.section === "icons")
+    return "Раздел иконок готов. Материалы добавим на следующем этапе.";
+  if (state.section === "logos")
+    return "Раздел логотипов готов. Материалы добавим на следующем этапе.";
+  if (state.section === "assistant") return "ИИ-ассистент появится на следующем этапе разработки.";
   if (state.query || getActiveFilterCount())
     return "По вашему запросу ничего не найдено. Попробуйте изменить поиск или фильтры.";
   return "В библиотеке пока нет материалов.";
@@ -349,6 +388,12 @@ function renderLibrary() {
 function renderControls() {
   elements.sectionHint.textContent = sectionHints[state.section];
   elements.library.dataset.view = state.view;
+  document.getElementById("app").classList.toggle("is-sidebar-collapsed", state.sidebarCollapsed);
+  elements.collapseButton.setAttribute(
+    "aria-label",
+    state.sidebarCollapsed ? "Развернуть меню" : "Свернуть меню"
+  );
+  elements.collapseButton.title = state.sidebarCollapsed ? "Развернуть меню" : "Свернуть меню";
   elements.viewButton.title = state.view === "grid" ? "Показать списком" : "Показать плиткой";
   elements.viewButton.setAttribute("aria-label", elements.viewButton.title);
   elements.sortButton.title =
@@ -533,6 +578,11 @@ function handleLibraryKeydown(event) {
 }
 
 function bindEvents() {
+  elements.collapseButton.addEventListener("click", () => {
+    state.sidebarCollapsed = !state.sidebarCollapsed;
+    renderControls();
+  });
+
   elements.sectionNav.addEventListener("click", (event) => {
     const button = event.target.closest("[data-section]");
     if (button) selectSection(button.dataset.section);
@@ -568,6 +618,28 @@ function bindEvents() {
     state.view = state.view === "grid" ? "list" : "grid";
     render();
   });
+  elements.shareButton.addEventListener("click", async () => {
+    const shareData = {
+      title: "Slidebrary",
+      text: "Библиотека материалов Slidebrary",
+      url: BASE_URL,
+    };
+    try {
+      if (navigator.share) await navigator.share(shareData);
+      else if (navigator.clipboard) {
+        await navigator.clipboard.writeText(BASE_URL);
+        showToast("Ссылка скопирована");
+      } else showToast("Ссылка: gloomeries.github.io/Slide-library");
+    } catch (error) {
+      if (error?.name !== "AbortError") showToast("Не удалось поделиться ссылкой");
+    }
+  });
+  elements.moreButton.addEventListener("click", () =>
+    showToast("Дополнительные настройки появятся позже")
+  );
+  elements.closeAppButton.addEventListener("click", () =>
+    showToast("Закройте панель крестиком в заголовке PowerPoint")
+  );
   elements.library.addEventListener("click", handleLibraryClick);
   elements.library.addEventListener("keydown", handleLibraryKeydown);
   elements.library.addEventListener(
