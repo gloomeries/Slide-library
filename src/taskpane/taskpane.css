@@ -380,13 +380,9 @@ textarea:focus-visible,
 }
 
 .toolbar-actions .icon-button {
-  width: 25px;
-  height: 25px;
-  padding: 5px;
-}
-
-.toolbar-actions #shareButton {
-  padding: 4px 6px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
 }
 
 .template-view {
