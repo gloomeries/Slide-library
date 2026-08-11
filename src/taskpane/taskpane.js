@@ -230,11 +230,34 @@ const sectionHints = {
   favorites: "Избранные материалы",
   presentations: "Выберите макет для вашего слайда",
   photos: "Выберите фотографию для вашего слайда",
-  illustrations: "Выберите иллюстрацию для вашего слайда",
+  illustrations: "Выберите изображение для вашего слайда",
   icons: "Выберите иконку для вашего слайда",
   logos: "Выберите логотип для вашего слайда",
   templates: "Выберите макет для вашего слайда",
   assistant: "Создайте материал с помощью ИИ-ассистента",
+};
+
+const sectionFilterConfigs = {
+  photos: {
+    label: "Продукт группы VK",
+    options: ["MAX", "VK", "Сферум", "Одноклассники"],
+  },
+  illustrations: {
+    label: "Тип изображения",
+    options: ["3D", "2D", "Фото", "Абстракция"],
+  },
+  icons: {
+    label: "Расширение файла: svg, png, gif",
+    options: ["SVG", "PNG", "GIF"],
+  },
+  logos: {
+    label: "Выберите продукт",
+    options: ["MAX", "VK", "Сферум", "Одноклассники"],
+  },
+  templates: {
+    label: "Выберите продукт",
+    options: ["MAX", "VK", "Сферум", "Одноклассники"],
+  },
 };
 
 const state = {
@@ -265,6 +288,13 @@ const state = {
   account: readStoredObject(STORAGE_KEYS.account),
   templateFile: null,
   templateTags: [],
+  sectionFilters: {
+    photos: "MAX",
+    illustrations: "3D",
+    icons: "SVG",
+    logos: "MAX",
+    templates: "MAX",
+  },
 };
 
 const elements = {};
@@ -371,6 +401,9 @@ function cacheElements() {
     "indexUpdatedField",
     "cancelAccountButton",
     "sectionHint",
+    "sectionFilter",
+    "sectionFilterLabel",
+    "sectionFilterSelect",
     "statusRegion",
     "library",
     "clearSelectionButton",
@@ -439,6 +472,7 @@ function getVisibleMaterials() {
     result = result.filter((item) => state.favorites.has(item.id));
   }
   if (!["favorites", "presentations", "templates"].includes(state.section)) result = [];
+  if (state.section === "templates" && state.sectionFilters.templates !== "MAX") result = [];
 
   const normalizedQuery = state.query.trim().toLocaleLowerCase("ru");
   if (normalizedQuery) {
@@ -469,14 +503,9 @@ function getEmptyMessage() {
   }
   if (state.section === "favorites")
     return "В избранном пока ничего нет. Нажмите на сердечко у нужного материала.";
-  if (state.section === "photos")
-    return "Раздел фотографий готов. Материалы добавим на следующем этапе.";
-  if (state.section === "illustrations")
-    return "Раздел иллюстраций готов. Материалы добавим на следующем этапе.";
-  if (state.section === "icons")
-    return "Раздел иконок готов. Материалы добавим на следующем этапе.";
-  if (state.section === "logos")
-    return "Раздел логотипов готов. Материалы добавим на следующем этапе.";
+  if (sectionFilterConfigs[state.section]) {
+    return `Для выбранного значения «${state.sectionFilters[state.section]}» пока нет материалов.`;
+  }
   if (state.section === "assistant") return "ИИ-ассистент появится на следующем этапе разработки.";
   if (state.query || getActiveFilterCount())
     return "По вашему запросу ничего не найдено. Попробуйте изменить поиск или фильтры.";
@@ -542,11 +571,12 @@ function renderLibrary() {
 }
 
 function renderControls() {
-  const isTemplateView = state.section === "templates";
+  const isTemplateView = state.section === "templates" && state.tab === "personal";
   const isAssistantView = state.section === "assistant";
   elements.libraryView.hidden = isTemplateView || isAssistantView;
   elements.templateView.hidden = !isTemplateView;
   elements.assistantView.hidden = !isAssistantView;
+  renderSectionFilter();
   elements.sectionHint.textContent = sectionHints[state.section];
   elements.library.dataset.view = state.view;
   document.getElementById("app").classList.toggle("is-sidebar-collapsed", state.sidebarCollapsed);
@@ -583,6 +613,21 @@ function renderControls() {
     tab.classList.toggle("is-active", isActive);
     tab.setAttribute("aria-selected", String(isActive));
   });
+}
+
+function renderSectionFilter() {
+  const config = sectionFilterConfigs[state.section];
+  const isVisible = Boolean(config) && state.tab === "public";
+  elements.sectionFilter.hidden = !isVisible;
+  if (!isVisible) return;
+
+  elements.sectionFilterLabel.textContent = config.label;
+  elements.sectionFilterSelect.innerHTML = config.options
+    .map(
+      (option) =>
+        `<option value="${escapeHtml(option)}"${state.sectionFilters[state.section] === option ? " selected" : ""}>${escapeHtml(option)}</option>`
+    )
+    .join("");
 }
 
 function updateTemplateSubmitState() {
@@ -861,6 +906,11 @@ function handleLibraryKeydown(event) {
 }
 
 function bindEvents() {
+  elements.sectionFilterSelect.addEventListener("change", (event) => {
+    state.sectionFilters[state.section] = event.target.value;
+    renderLibrary();
+  });
+
   elements.assistantPrompt.addEventListener("input", updateAssistantForm);
   elements.cancelAssistantButton.addEventListener("click", resetAssistantForm);
   elements.assistantForm.addEventListener("submit", (event) => {

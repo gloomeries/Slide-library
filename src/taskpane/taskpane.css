@@ -381,6 +381,43 @@ textarea:focus-visible,
   padding: 0;
 }
 
+.section-filter {
+  padding: 10px 28px 16px;
+  background: var(--surface);
+}
+
+.section-filter[hidden] {
+  display: none;
+}
+
+.section-filter label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: #7b899a;
+  font-size: 14px;
+}
+
+.section-filter select {
+  width: 100%;
+  height: 43px;
+  appearance: none;
+  padding: 0 40px 0 12px;
+  border: 1px solid #e0e3e7;
+  border-radius: 8px;
+  outline: 0;
+  background-color: var(--field);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='8' viewBox='0 0 14 8'%3E%3Cpath d='m2 2 5 4 5-4' fill='none' stroke='%2399a2ad' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  color: var(--text);
+  font-size: 16px;
+}
+
+.section-filter select:focus {
+  border-color: var(--accent);
+}
+
 .template-view {
   width: min(100%, 500px);
   margin: 0 auto;
@@ -1471,6 +1508,7 @@ textarea:focus-visible,
   .tabs,
   .search-row,
   .content-toolbar,
+  .section-filter,
   .library-grid {
     padding-right: 10px;
     padding-left: 10px;
