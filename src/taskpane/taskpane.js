@@ -340,6 +340,12 @@ function cacheElements() {
     "searchInput",
     "libraryView",
     "templateView",
+    "assistantView",
+    "assistantForm",
+    "assistantPrompt",
+    "assistantPromptCounter",
+    "cancelAssistantButton",
+    "startAssistantButton",
     "templateForm",
     "templateDropzone",
     "templateFileInput",
@@ -539,8 +545,10 @@ function renderLibrary() {
 
 function renderControls() {
   const isTemplateView = state.section === "templates";
-  elements.libraryView.hidden = isTemplateView;
+  const isAssistantView = state.section === "assistant";
+  elements.libraryView.hidden = isTemplateView || isAssistantView;
   elements.templateView.hidden = !isTemplateView;
+  elements.assistantView.hidden = !isAssistantView;
   elements.sectionHint.textContent = sectionHints[state.section];
   elements.library.dataset.view = state.view;
   document.getElementById("app").classList.toggle("is-sidebar-collapsed", state.sidebarCollapsed);
@@ -640,6 +648,17 @@ function resetTemplateForm() {
   updateTemplateSubmitState();
 }
 
+function updateAssistantForm() {
+  const promptLength = elements.assistantPrompt.value.length;
+  elements.assistantPromptCounter.textContent = `${promptLength} / 2000`;
+  elements.startAssistantButton.disabled = !elements.assistantPrompt.value.trim();
+}
+
+function resetAssistantForm() {
+  elements.assistantForm.reset();
+  updateAssistantForm();
+}
+
 function render() {
   renderNavigation();
   renderControls();
@@ -651,10 +670,12 @@ function getActiveFilterCount() {
 }
 
 function selectSection(sectionId) {
-  const isLeavingTemplateView = state.section === "templates" && sectionId !== "templates";
+  const compactSections = ["templates", "assistant"];
+  const isLeavingCompactView =
+    compactSections.includes(state.section) && !compactSections.includes(sectionId);
   state.section = sectionId;
-  if (sectionId === "templates") state.sidebarCollapsed = true;
-  else if (isLeavingTemplateView) state.sidebarCollapsed = false;
+  if (compactSections.includes(sectionId)) state.sidebarCollapsed = true;
+  else if (isLeavingCompactView) state.sidebarCollapsed = false;
   state.selected.clear();
   render();
   window.scrollTo(0, 0);
@@ -842,6 +863,14 @@ function handleLibraryKeydown(event) {
 }
 
 function bindEvents() {
+  elements.assistantPrompt.addEventListener("input", updateAssistantForm);
+  elements.cancelAssistantButton.addEventListener("click", resetAssistantForm);
+  elements.assistantForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    if (!elements.assistantPrompt.value.trim()) return;
+    showToast("Запрос готов. Подключение генерации будет следующим этапом");
+  });
+
   elements.templateDropzone.addEventListener("click", () => elements.templateFileInput.click());
   elements.templateFileInput.addEventListener("change", (event) => {
     const file = event.target.files?.[0];
@@ -1041,6 +1070,7 @@ function initialize() {
   populateFilterOptions();
   bindEvents();
   renderTemplateTags();
+  updateAssistantForm();
   render();
   window.setTimeout(() => {
     state.loading = false;

@@ -273,6 +273,104 @@
               </div>
             </form>
           </section>
+
+          <section
+            id="assistantView"
+            class="assistant-view"
+            aria-labelledby="assistantViewTitle"
+            hidden
+          >
+            <h2 id="assistantViewTitle">Создать презентацию по теме</h2>
+            <form id="assistantForm" class="assistant-form">
+              <label class="assistant-topic-field" for="assistantPrompt">
+                <span class="assistant-field-heading">
+                  <span>Опишите тему</span>
+                  <span id="assistantPromptCounter">0 / 2000</span>
+                </span>
+                <textarea
+                  id="assistantPrompt"
+                  name="prompt"
+                  maxlength="2000"
+                  rows="1"
+                  placeholder="Добавьте запрос здесь..."
+                ></textarea>
+              </label>
+
+              <div class="assistant-settings">
+                <label class="assistant-field">
+                  <span>Количество слайдов</span>
+                  <select name="slideCount">
+                    <option value="4">4</option>
+                    <option value="6">6</option>
+                    <option value="8">8</option>
+                    <option value="10">10</option>
+                    <option value="12">12</option>
+                  </select>
+                </label>
+
+                <label class="assistant-field">
+                  <span>Язык презентации</span>
+                  <select name="language">
+                    <option value="ru">Русский</option>
+                    <option value="en">Английский</option>
+                  </select>
+                </label>
+
+                <label class="assistant-field">
+                  <span>Содержание</span>
+                  <select name="detailLevel">
+                    <option value="detailed">Подробно</option>
+                    <option value="brief">Кратко</option>
+                  </select>
+                </label>
+
+                <label class="assistant-field">
+                  <span>Источник изображений</span>
+                  <span class="assistant-select-with-icon">
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
+                      <rect x="3.5" y="4" width="14" height="15" rx="2" />
+                      <circle cx="8" cy="9" r="1.5" />
+                      <path d="m5.5 16 3.5-3.5 2.5 2.5 2-2 2 2" />
+                      <path d="M19 13v6m-3-3h6" />
+                    </svg>
+                    <select name="imageSource">
+                      <option value="ai">Изображения ИИ</option>
+                      <option value="library">Библиотека изображений</option>
+                      <option value="none">Без изображений</option>
+                    </select>
+                  </span>
+                </label>
+              </div>
+
+              <label class="assistant-switch-row">
+                <span>Расширенный ИИ</span>
+                <span class="assistant-switch-control">
+                  <span
+                    class="assistant-help"
+                    title="Использовать расширенную модель для более детальной презентации"
+                    aria-hidden="true"
+                    >?</span
+                  >
+                  <input name="advancedAi" type="checkbox" checked />
+                  <span class="assistant-switch" aria-hidden="true"></span>
+                </span>
+              </label>
+
+              <div class="assistant-actions">
+                <button id="cancelAssistantButton" class="button button-secondary" type="button">
+                  Отменить
+                </button>
+                <button
+                  id="startAssistantButton"
+                  class="button button-primary"
+                  type="submit"
+                  disabled
+                >
+                  Начать
+                </button>
+              </div>
+            </form>
+          </section>
         </main>
       </div>
     </div>

@@ -39,7 +39,8 @@ body {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
 }
 
@@ -50,6 +51,7 @@ button {
 button:focus-visible,
 input:focus-visible,
 select:focus-visible,
+textarea:focus-visible,
 .material-card:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
@@ -254,7 +256,8 @@ select:focus-visible,
 }
 
 .library-view[hidden],
-.template-view[hidden] {
+.template-view[hidden],
+.assistant-view[hidden] {
   display: none;
 }
 
@@ -603,6 +606,207 @@ select:focus-visible,
 
 .template-actions .button {
   min-width: 142px;
+}
+
+.assistant-view {
+  width: min(100%, 650px);
+  margin: 0 auto;
+  padding: 34px 30px 54px;
+}
+
+.assistant-view h2 {
+  margin: 0 0 34px;
+  font-size: 24px;
+  line-height: 1.2;
+}
+
+.assistant-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.assistant-topic-field,
+.assistant-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  color: #7b899a;
+  font-size: 14px;
+}
+
+.assistant-field-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+#assistantPromptCounter {
+  color: #9aa6b5;
+}
+
+.assistant-topic-field textarea {
+  width: 100%;
+  height: 44px;
+  min-height: 44px;
+  padding: 10px 12px;
+  resize: none;
+  border: 1px solid #8fc3f8;
+  border-radius: 8px;
+  outline: 0;
+  background: var(--field);
+  color: var(--text);
+  line-height: 1.4;
+}
+
+.assistant-topic-field textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(39, 136, 233, 0.08);
+}
+
+.assistant-topic-field textarea::placeholder {
+  color: #8d9aab;
+}
+
+.assistant-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 45px;
+  padding-top: 47px;
+}
+
+.assistant-field select {
+  width: 100%;
+  height: 43px;
+  appearance: none;
+  padding: 0 40px 0 12px;
+  border: 1px solid #e0e3e7;
+  border-radius: 8px;
+  outline: 0;
+  background-color: var(--field);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='8' viewBox='0 0 14 8'%3E%3Cpath d='m2 2 5 4 5-4' fill='none' stroke='%2399a2ad' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  color: var(--text);
+}
+
+.assistant-field select:focus {
+  border-color: var(--accent);
+}
+
+.assistant-select-with-icon {
+  position: relative;
+  display: block;
+}
+
+.assistant-select-with-icon svg {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  left: 13px;
+  width: 20px;
+  height: 20px;
+  transform: translateY(-50%);
+  pointer-events: none;
+  stroke: var(--accent);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+.assistant-select-with-icon select {
+  padding-left: 41px;
+}
+
+.assistant-switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding-top: 54px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.assistant-switch-control {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.assistant-help {
+  display: grid;
+  width: 14px;
+  height: 14px;
+  place-items: center;
+  border: 1px solid #aebdcd;
+  border-radius: 50%;
+  color: #91a1b1;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.assistant-switch-control input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.assistant-switch {
+  position: relative;
+  width: 48px;
+  height: 29px;
+  border-radius: 999px;
+  background: #cbd2d9;
+  transition: background 0.18s ease;
+}
+
+.assistant-switch::after {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(26, 39, 52, 0.24);
+  content: "";
+  transition: transform 0.18s ease;
+}
+
+.assistant-switch-control input:checked + .assistant-switch {
+  background: var(--accent);
+}
+
+.assistant-switch-control input:checked + .assistant-switch::after {
+  transform: translateX(19px);
+}
+
+.assistant-switch-control input:focus-visible + .assistant-switch {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.assistant-actions {
+  display: flex;
+  justify-content: center;
+  gap: 36px;
+  padding-top: 76px;
+}
+
+.assistant-actions .button {
+  min-width: 160px;
+  min-height: 48px;
+  font-size: 16px;
+}
+
+.assistant-actions .button-primary:disabled {
+  border-color: #dde2e7;
+  background: #dde2e7;
+  color: #1a1a1a;
+  opacity: 1;
 }
 
 .status-region {
@@ -1222,6 +1426,34 @@ select:focus-visible,
   }
 
   .template-actions .button {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .assistant-view {
+    padding: 24px 14px 44px;
+  }
+
+  .assistant-view h2 {
+    margin-bottom: 28px;
+    font-size: 20px;
+  }
+
+  .assistant-settings {
+    gap: 30px;
+    padding-top: 36px;
+  }
+
+  .assistant-switch-row {
+    padding-top: 42px;
+  }
+
+  .assistant-actions {
+    gap: 10px;
+    padding-top: 54px;
+  }
+
+  .assistant-actions .button {
     min-width: 0;
     flex: 1;
   }
