@@ -229,10 +229,6 @@ textarea:focus-visible,
   padding: 0 14px;
 }
 
-.app-shell.is-sidebar-collapsed .collapse-icon {
-  transform: rotate(180deg);
-}
-
 .app-shell.is-sidebar-collapsed .collapse-button span,
 .app-shell.is-sidebar-collapsed .nav-label {
   display: none;

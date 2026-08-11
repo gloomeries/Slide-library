@@ -336,6 +336,7 @@ function cacheElements() {
   [
     "sectionNav",
     "collapseButton",
+    "collapseIcon",
     "profileButton",
     "searchInput",
     "libraryView",
@@ -557,6 +558,9 @@ function renderControls() {
     state.sidebarCollapsed ? "Развернуть меню" : "Свернуть меню"
   );
   elements.collapseButton.title = state.sidebarCollapsed ? "Развернуть меню" : "Свернуть меню";
+  elements.collapseIcon.src = state.sidebarCollapsed
+    ? "assets/ui/развернуть.svg"
+    : "assets/ui/icon.svg";
   elements.viewButton.title = state.view === "grid" ? "Показать списком" : "Показать плиткой";
   elements.viewButton.setAttribute("aria-label", elements.viewButton.title);
   elements.sortButton.title =
