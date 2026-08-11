@@ -382,9 +382,6 @@ function cacheElements() {
     "previewOverlay",
     "closePreviewButton",
     "previewImage",
-    "previewTitle",
-    "previewFormat",
-    "previewProduct",
     "previewInsertButton",
     "toast",
   ].forEach((id) => {
@@ -704,9 +701,6 @@ function openPreview(id) {
   state.previewId = id;
   elements.previewImage.src = item.preview;
   elements.previewImage.alt = `Превью: ${item.title}`;
-  elements.previewTitle.textContent = item.title;
-  elements.previewFormat.textContent = item.format;
-  elements.previewProduct.textContent = item.product;
   elements.previewOverlay.hidden = false;
   elements.closePreviewButton.focus();
 }

@@ -550,39 +550,53 @@
         class="preview-dialog"
         role="dialog"
         aria-modal="true"
-        aria-labelledby="previewTitle"
+        aria-labelledby="previewDialogTitle"
       >
-        <header class="drawer-header">
+        <header class="preview-header">
           <span></span>
           <h2 id="previewDialogTitle">Подробнее</h2>
           <button
             id="closePreviewButton"
-            class="icon-button"
+            class="preview-close"
             type="button"
             aria-label="Закрыть предпросмотр"
           >
-            <img src="assets/ui/close.svg" alt="" />
+            <span aria-hidden="true"></span>
           </button>
         </header>
-        <img id="previewImage" class="preview-image" src="data:," alt="" />
-        <h3 id="previewTitle"></h3>
-        <dl class="preview-details">
-          <div>
-            <dt>Статус</dt>
-            <dd>Утверждено</dd>
+        <div class="preview-content">
+          <img id="previewImage" class="preview-image" src="data:," alt="" />
+          <div class="preview-pagination" aria-label="Слайд 2 из 7">
+            <span></span>
+            <span class="is-active"></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
           </div>
-          <div>
-            <dt>Формат</dt>
-            <dd id="previewFormat"></dd>
-          </div>
-          <div>
-            <dt>Продукт</dt>
-            <dd id="previewProduct"></dd>
-          </div>
-        </dl>
-        <button id="previewInsertButton" class="button button-primary preview-insert" type="button">
-          Вставить слайд
-        </button>
+          <dl class="preview-details">
+            <div>
+              <dt>Статус</dt>
+              <dd>Утверждено</dd>
+            </div>
+            <div>
+              <dt>Версия</dt>
+              <dd>v.1</dd>
+            </div>
+            <div>
+              <dt>Владелец</dt>
+              <dd>В. Шевченко</dd>
+            </div>
+          </dl>
+          <button
+            id="previewInsertButton"
+            class="button button-primary preview-insert"
+            type="button"
+          >
+            Вставить слайд
+          </button>
+        </div>
       </section>
     </div>
 
