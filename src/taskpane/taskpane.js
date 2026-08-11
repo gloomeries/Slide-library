@@ -538,7 +538,7 @@ function renderLibrary() {
             data-action="select"
             aria-label="${isSelected ? "Убрать из выбранного" : "Выбрать для вставки"}"
             title="${isSelected ? "Убрать из выбранного" : "Выбрать для вставки"}"
-          >${isSelected ? "✓" : "+"}</button>
+          >${isSelected ? '<span class="selected-icon" aria-hidden="true">✓</span>' : '<span class="plus-icon" aria-hidden="true"></span>'}</button>
         </article>`;
     })
     .join("");
