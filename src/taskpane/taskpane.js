@@ -289,11 +289,11 @@ const state = {
   templateFile: null,
   templateTags: [],
   sectionFilters: {
-    photos: "MAX",
+    photos: "Все",
     illustrations: "3D",
     icons: "SVG",
-    logos: "MAX",
-    templates: "MAX",
+    logos: "Все",
+    templates: "Все",
   },
 };
 
