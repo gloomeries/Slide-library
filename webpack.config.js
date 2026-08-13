@@ -5,7 +5,7 @@ const CopyWebpackPlugin = require("copy-webpack-plugin");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 
 const urlDev = "https://localhost:3000/";
-const urlProd = "https://www.contoso.com/"; // CHANGE THIS TO YOUR PRODUCTION DEPLOYMENT LOCATION
+const urlProd = "https://gloomeries.github.io/Slide-library/";
 
 async function getHttpsOptions() {
   const httpsOptions = await devCerts.getHttpsServerOptions();
@@ -17,8 +17,7 @@ module.exports = async (env, options) => {
   const config = {
     devtool: "source-map",
     entry: {
-      polyfill: ["core-js/stable", "regenerator-runtime/runtime"],
-      taskpane: ["./src/taskpane/taskpane.js", "./src/taskpane/taskpane.html"],
+      taskpane: "./src/taskpane/taskpane.js",
       commands: "./src/commands/commands.js",
     },
     output: {
@@ -37,12 +36,7 @@ module.exports = async (env, options) => {
           },
         },
         {
-          test: /\.html$/,
-          exclude: /node_modules/,
-          use: "html-loader",
-        },
-        {
-          test: /\.(png|jpg|jpeg|gif|ico)$/,
+          test: /\.(png|jpg|jpeg|gif|ico|svg)$/,
           type: "asset/resource",
           generator: {
             filename: "assets/[name][ext][query]",
@@ -54,13 +48,17 @@ module.exports = async (env, options) => {
       new HtmlWebpackPlugin({
         filename: "taskpane.html",
         template: "./src/taskpane/taskpane.html",
-        chunks: ["polyfill", "taskpane"],
+        inject: false,
       }),
       new CopyWebpackPlugin({
         patterns: [
           {
-            from: "assets/*",
-            to: "assets/[name][ext][query]",
+            from: "assets",
+            to: "assets",
+          },
+          {
+            from: "src/taskpane/taskpane.css",
+            to: "taskpane.css",
           },
           {
             from: "manifest*.xml",
@@ -78,7 +76,7 @@ module.exports = async (env, options) => {
       new HtmlWebpackPlugin({
         filename: "commands.html",
         template: "./src/commands/commands.html",
-        chunks: ["polyfill", "commands"],
+        chunks: ["commands"],
       }),
     ],
     devServer: {
@@ -87,7 +85,10 @@ module.exports = async (env, options) => {
       },
       server: {
         type: "https",
-        options: env.WEBPACK_BUILD || options.https !== undefined ? options.https : await getHttpsOptions(),
+        options:
+          env.WEBPACK_BUILD || options.https !== undefined
+            ? options.https
+            : await getHttpsOptions(),
       },
       port: process.env.npm_package_config_dev_server_port || 3000,
     },
