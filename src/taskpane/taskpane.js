@@ -127,6 +127,104 @@ const materials = [
   },
 ];
 
+const LOGO_BASE_PATH = "assets/ui/logos";
+const logoFiles = [
+  "AliExpress Россия.svg",
+  "calendar.svg",
+  "Mail.svg",
+  "MAX.svg",
+  "MOVIKA.svg",
+  "Mytracker.svg",
+  "rustore.svg",
+  "VK AdBlogger.svg",
+  "VK Customer Experience Hub.svg",
+  "VK Play.svg",
+  "VK Video.svg",
+  "VK Доска.svg",
+  "VK Звонки.svg",
+  "VK Знакомства.svg",
+  "VK клипы.svg",
+  "VK Мессенджер.svg",
+  "VK Музыка.svg",
+  "VK Реклама.svg",
+  "VK Фитнес.svg",
+  "Yclients.svg",
+  "вк билеты.svg",
+  "вк добро.svg",
+  "вк иконка.svg",
+  "вк рекордс.svg",
+  "вк тутория.svg",
+  "гикбрэйнс.svg",
+  "ДЗЕН ИКОНКА.svg",
+  "Задачи.svg",
+  "Заметки.svg",
+  "капсула мини.svg",
+  "капсула нео.svg",
+  "капсула про.svg",
+  "капсула.svg",
+  "нетология.svg",
+  "облако для фондов.svg",
+  "Облако.svg",
+  "одноклассники.svg",
+  "Ол капс иконка.svg",
+  "Ответы.svg",
+  "скиллбокс.svg",
+  "сферум.svg",
+  "Тетрика.svg",
+  "Умскул.svg",
+  "учиру.svg",
+  "юла.svg",
+];
+
+function getLogoCategory(filename) {
+  const name = filename.replace(/\.svg$/i, "").toLocaleLowerCase("ru");
+  if (name === "max") return "MAX";
+  if (name === "сферум") return "Сферум";
+  if (name === "одноклассники") return "Одноклассники";
+  if (/^(vk|вк)(\s|$)/i.test(name)) return "VK";
+  if (["гикбрэйнс", "нетология", "скиллбокс", "тетрика", "умскул", "учиру"].includes(name))
+    return "Образование";
+  if (
+    [
+      "calendar",
+      "mail",
+      "задачи",
+      "заметки",
+      "капсула мини",
+      "капсула нео",
+      "капсула про",
+      "капсула",
+      "облако для фондов",
+      "облако",
+      "ответы",
+    ].includes(name)
+  )
+    return "Mail.ru";
+  return "Другие";
+}
+
+const logoMaterials = logoFiles.map((filename, index) => {
+  const title = filename.replace(/\.svg$/i, "");
+  const product = getLogoCategory(filename);
+  const source = `${LOGO_BASE_PATH}/${encodeURIComponent(filename)}`;
+  return {
+    id: `logo-${index + 1}`,
+    title,
+    product,
+    type: "Логотип",
+    format: "SVG",
+    style: "Фирменный стиль",
+    tags: ["логотип", product, title],
+    preview: source,
+    source,
+    mimeType: "image/svg+xml",
+    assetKind: "image",
+    librarySection: "logos",
+  };
+});
+
+materials.push(...logoMaterials);
+
 const materialFilterMetadata = {
   title: {
     goal: "Информировать",
@@ -255,7 +353,12 @@ const sectionFilterConfigs = {
   },
   logos: {
     label: "Выберите продукт",
-    options: ["MAX", "VK", "Сферум", "Одноклассники"],
+    options: [
+      "Все",
+      ...new Set(
+        logoMaterials.map((logo) => logo.product).sort((a, b) => a.localeCompare(b, "ru"))
+      ),
+    ],
   },
   templates: {
     label: "Выберите продукт",
@@ -337,6 +440,7 @@ function makePhotoMaterial(resource, relativePath) {
     preview: resource.preview || resource.file,
     source: resource.file || resource.preview,
     mimeType: resource.mime_type || "image/jpeg",
+    assetKind: "image",
     librarySection: "photos",
   };
 }
@@ -581,6 +685,11 @@ function getVisibleMaterials() {
     if (state.sectionFilters.photos !== "Все") {
       result = result.filter((item) => item.product === state.sectionFilters.photos);
     }
+  } else if (state.section === "logos") {
+    result = result.filter((item) => item.librarySection === "logos");
+    if (state.sectionFilters.logos !== "Все") {
+      result = result.filter((item) => item.product === state.sectionFilters.logos);
+    }
   } else if (["presentations", "templates"].includes(state.section)) {
     result = result.filter((item) => item.librarySection !== "photos");
   } else {
@@ -661,7 +770,7 @@ function renderLibrary() {
       const isSelected = state.selected.has(item.id);
       return `
         <article
-          class="material-card${isSelected ? " is-selected" : ""}"
+          class="material-card${item.librarySection === "logos" ? " is-logo" : ""}${isSelected ? " is-selected" : ""}"
           data-id="${item.id}"
           tabindex="0"
           aria-label="Открыть предпросмотр: ${escapeHtml(item.title)}"
@@ -956,8 +1065,8 @@ async function fetchTemplateAsBase64(item) {
   return arrayBufferToBase64(await response.arrayBuffer());
 }
 
-async function fetchPhotoAsBase64(item) {
-  if (!item.source) throw new Error(`Не найдена ссылка на фотографию «${item.title}»`);
+async function fetchImageAsBase64(item) {
+  if (!item.source) throw new Error(`Не найдена ссылка на изображение «${item.title}»`);
   const response = await fetch(item.source);
   if (!response.ok) throw new Error(`Не удалось загрузить «${item.title}» (${response.status})`);
   return {
@@ -975,8 +1084,8 @@ function getImageSize(base64, mimeType) {
   });
 }
 
-async function insertPhotoOnCurrentSlide(item, index = 0) {
-  const { base64, mimeType } = await fetchPhotoAsBase64(item);
+async function insertImageOnCurrentSlide(item, index = 0) {
+  const { base64, mimeType } = await fetchImageAsBase64(item);
   const sourceSize = await getImageSize(base64, mimeType);
   const maxWidth = 600;
   const maxHeight = 320;
@@ -989,7 +1098,9 @@ async function insertPhotoOnCurrentSlide(item, index = 0) {
     Office.context.document.setSelectedDataAsync(
       base64,
       {
-        coercionType: Office.CoercionType.Image,
+        coercionType: mimeType.includes("svg")
+          ? Office.CoercionType.XmlSvg
+          : Office.CoercionType.Image,
         imageLeft: Math.round((720 - width) / 2) + offset,
         imageTop: Math.round((405 - height) / 2) + offset,
         imageWidth: width,
@@ -1020,8 +1131,8 @@ async function insertMaterials(ids) {
     '<div class="status-message">Загружаем выбранные материалы…</div>';
 
   try {
-    const photos = items.filter((item) => item.librarySection === "photos");
-    const templates = items.filter((item) => item.librarySection !== "photos");
+    const images = items.filter((item) => item.assetKind === "image");
+    const templates = items.filter((item) => item.assetKind !== "image");
     const encodedTemplates = [];
     for (const item of templates) {
       encodedTemplates.push({ item, base64: await fetchTemplateAsBase64(item) });
@@ -1036,8 +1147,8 @@ async function insertMaterials(ids) {
       });
     }
 
-    for (let index = 0; index < photos.length; index += 1) {
-      await insertPhotoOnCurrentSlide(photos[index], index);
+    for (let index = 0; index < images.length; index += 1) {
+      await insertImageOnCurrentSlide(images[index], index);
     }
 
     const insertedIds = items.map((item) => item.id);
@@ -1048,9 +1159,9 @@ async function insertMaterials(ids) {
     writeStoredArray(STORAGE_KEYS.recent, state.recent);
     state.selected.clear();
     closePreview();
-    if (photos.length && !templates.length) {
+    if (images.length && !templates.length) {
       showToast(
-        photos.length === 1 ? "Фотография вставлена" : `Добавлено фотографий: ${photos.length}`
+        images.length === 1 ? "Изображение вставлено" : `Добавлено изображений: ${images.length}`
       );
     } else {
       showToast(items.length === 1 ? "Слайд вставлен" : `Добавлено материалов: ${items.length}`);

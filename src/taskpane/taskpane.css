@@ -897,6 +897,10 @@ textarea:focus-visible,
   border-color: var(--accent);
 }
 
+.material-card.is-logo {
+  background: #fff;
+}
+
 .card-preview {
   display: block;
   width: 100%;
@@ -908,6 +912,13 @@ textarea:focus-visible,
 
 .card-preview.is-broken {
   opacity: 0.35;
+}
+
+.material-card.is-logo .card-preview {
+  box-sizing: border-box;
+  padding: 18px;
+  object-fit: contain;
+  background: #fff;
 }
 
 .card-title {
@@ -1009,6 +1020,10 @@ textarea:focus-visible,
 .library-grid.is-list .card-preview {
   width: 64px;
   height: 36px;
+}
+
+.library-grid.is-list .material-card.is-logo .card-preview {
+  padding: 5px;
 }
 
 .library-grid.is-list .card-title {
