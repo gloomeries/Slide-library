@@ -1,9 +1,12 @@
-/* global Office, PowerPoint, FormData, btoa, document, fetch, localStorage, navigator, window */
+/* global Office, PowerPoint, FormData, URLSearchParams, btoa, document, fetch, localStorage, navigator, window */
 
 import "core-js/stable";
 import "regenerator-runtime/runtime";
 
 const BASE_URL = "https://gloomeries.github.io/Slide-library";
+// Вставьте сюда публичную ссылку на папку Яндекс Диска.
+const YANDEX_DISK_PUBLIC_URL = "https://disk.yandex.ru/d/htMsEH_oBBgwEw";
+const YANDEX_DISK_PUBLIC_API = "https://cloud-api.yandex.net/v1/disk/public/resources";
 const STORAGE_KEYS = {
   favorites: "slidebrary:favorites",
   recent: "slidebrary:recent",
@@ -284,6 +287,9 @@ const state = {
   previewId: null,
   loading: true,
   inserting: false,
+  photosLoading: false,
+  photosLoaded: false,
+  photosError: "",
   sidebarCollapsed: false,
   account: readStoredObject(STORAGE_KEYS.account),
   templateFile: null,
@@ -296,6 +302,103 @@ const state = {
     templates: "Все",
   },
 };
+
+function hashString(value) {
+  let hash = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
+  }
+  return hash.toString(36);
+}
+
+function getPhotoProduct(path) {
+  const normalizedPath = String(path || "").toLocaleLowerCase("ru");
+  const products = ["MAX", "VK", "Сферум", "Одноклассники"];
+  return (
+    products.find((product) => normalizedPath.includes(product.toLocaleLowerCase("ru"))) || "MAX"
+  );
+}
+
+function isImageResource(resource) {
+  return resource.type === "file" && /^image\//i.test(resource.mime_type || "");
+}
+
+function makePhotoMaterial(resource, relativePath) {
+  const title = resource.name.replace(/\.[^.]+$/, "");
+  return {
+    id: `yandex-photo-${hashString(resource.path || relativePath || resource.name)}`,
+    title,
+    product: getPhotoProduct(relativePath),
+    type: "Фотография",
+    format: "Изображение",
+    style: "Фотография",
+    tags: ["фотография", getPhotoProduct(relativePath), title],
+    preview: resource.preview || resource.file,
+    source: resource.file || resource.preview,
+    librarySection: "photos",
+  };
+}
+
+async function fetchYandexFolder(path = "", depth = 0) {
+  if (depth > 6) return [];
+
+  const params = new URLSearchParams({
+    public_key: YANDEX_DISK_PUBLIC_URL,
+    limit: "1000",
+    preview_size: "XL",
+    preview_crop: "false",
+  });
+  if (path) params.set("path", path);
+
+  const response = await fetch(`${YANDEX_DISK_PUBLIC_API}?${params.toString()}`);
+  if (!response.ok) {
+    throw new Error(`Яндекс Диск вернул ошибку ${response.status}`);
+  }
+
+  const resource = await response.json();
+  const children = resource._embedded?.items || [];
+  const photos = children
+    .filter(isImageResource)
+    .map((item) => makePhotoMaterial(item, path ? `${path}/${item.name}` : item.name));
+  const folders = children.filter((item) => item.type === "dir");
+  const nestedPhotos = await Promise.all(
+    folders.map((folder) =>
+      fetchYandexFolder(path ? `${path}/${folder.name}` : folder.name, depth + 1)
+    )
+  );
+  return photos.concat(...nestedPhotos);
+}
+
+function updatePhotoFilterOptions(photos) {
+  const products = [...new Set(photos.map((photo) => photo.product))].sort((a, b) =>
+    a.localeCompare(b, "ru")
+  );
+  sectionFilterConfigs.photos.options = ["Все", ...products];
+}
+
+async function loadYandexPhotos() {
+  if (state.photosLoading || state.photosLoaded) return;
+  if (!YANDEX_DISK_PUBLIC_URL) {
+    state.photosError = "Добавьте публичную ссылку Яндекс Диска в настройку YANDEX_DISK_PUBLIC_URL";
+    render();
+    return;
+  }
+
+  state.photosLoading = true;
+  state.photosError = "";
+  render();
+  try {
+    const photos = await fetchYandexFolder();
+    materials.push(...photos);
+    updatePhotoFilterOptions(photos);
+    state.photosLoaded = true;
+  } catch (error) {
+    state.photosError = error?.message || "Не удалось загрузить фотографии с Яндекс Диска";
+  } finally {
+    state.photosLoading = false;
+    render();
+  }
+}
 
 const elements = {};
 let toastTimer;
@@ -470,8 +573,16 @@ function getVisibleMaterials() {
   let result = [...materials];
   if (state.section === "favorites") {
     result = result.filter((item) => state.favorites.has(item.id));
+  } else if (state.section === "photos") {
+    result = result.filter((item) => item.librarySection === "photos");
+    if (state.sectionFilters.photos !== "Все") {
+      result = result.filter((item) => item.product === state.sectionFilters.photos);
+    }
+  } else if (["presentations", "templates"].includes(state.section)) {
+    result = result.filter((item) => item.librarySection !== "photos");
+  } else {
+    result = [];
   }
-  if (!["favorites", "presentations", "templates"].includes(state.section)) result = [];
   if (state.section === "templates" && state.sectionFilters.templates !== "MAX") result = [];
 
   const normalizedQuery = state.query.trim().toLocaleLowerCase("ru");
@@ -503,6 +614,9 @@ function getEmptyMessage() {
   }
   if (state.section === "favorites")
     return "В избранном пока ничего нет. Нажмите на сердечко у нужного материала.";
+  if (state.section === "photos" && state.photosError) return state.photosError;
+  if (state.section === "photos" && state.photosLoaded)
+    return "В публичной папке Яндекс Диска пока нет фотографий.";
   if (sectionFilterConfigs[state.section]) {
     return `Для выбранного значения «${state.sectionFilters[state.section]}» пока нет материалов.`;
   }
@@ -513,7 +627,7 @@ function getEmptyMessage() {
 }
 
 function renderStatus() {
-  if (state.loading) {
+  if (state.loading || (state.section === "photos" && state.photosLoading)) {
     elements.statusRegion.innerHTML = `
       <div class="loading-grid" aria-label="Загрузка материалов">
         <div class="skeleton"></div><div class="skeleton"></div>
@@ -527,7 +641,7 @@ function renderStatus() {
 function renderLibrary() {
   renderStatus();
   elements.library.className = `library-grid${state.view === "list" ? " is-list" : ""}`;
-  if (state.loading) {
+  if (state.loading || (state.section === "photos" && state.photosLoading)) {
     elements.library.innerHTML = "";
     return;
   }
@@ -724,6 +838,7 @@ function selectSection(sectionId) {
   else if (isLeavingCompactView) state.sidebarCollapsed = false;
   state.selected.clear();
   render();
+  if (sectionId === "photos") loadYandexPhotos();
   window.scrollTo(0, 0);
 }
 
