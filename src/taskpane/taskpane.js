@@ -348,11 +348,12 @@ async function fetchYandexFolder(path = "", depth = 0) {
     preview_size: "XL",
     preview_crop: "false",
   });
-  if (path) params.set("path", path);
+  if (path) params.set("path", `/${path.replace(/^\/+/, "")}`);
 
   const response = await fetch(`${YANDEX_DISK_PUBLIC_API}?${params.toString()}`);
   if (!response.ok) {
-    throw new Error(`Яндекс Диск вернул ошибку ${response.status}`);
+    const folderLabel = path ? ` для папки «${path}»` : " для корневой папки";
+    throw new Error(`Яндекс Диск вернул ошибку ${response.status}${folderLabel}`);
   }
 
   const resource = await response.json();
