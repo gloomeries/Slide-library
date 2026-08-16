@@ -225,6 +225,85 @@ const logoMaterials = logoFiles.map((filename, index) => {
 
 materials.push(...logoMaterials);
 
+const ICON_BASE_PATH = "assets/library/icons";
+const staticIconFiles = [
+  ["camera_outline_28.svg", "Камера"],
+  ["like_outline_28.svg", "Нравится"],
+  ["calendar_outline_28.svg", "Календарь"],
+  ["clock_outline_28.svg", "Время"],
+  ["cloud_outline_28.svg", "Облако"],
+  ["document_outline_28.svg", "Документ"],
+  ["folder_outline_28.svg", "Папка"],
+  ["gift_outline_28.svg", "Подарок"],
+  ["home_outline_28.svg", "Дом"],
+  ["mail_outline_28.svg", "Почта"],
+  ["message_outline_28.svg", "Сообщение"],
+  ["music_outline_28.svg", "Музыка"],
+  ["notification_28.svg", "Уведомление"],
+  ["picture_outline_28.svg", "Изображение"],
+  ["search_outline_28.svg", "Поиск"],
+  ["settings_28.svg", "Настройки"],
+  ["share_outline_28.svg", "Поделиться"],
+  ["shopping_cart_outline_28.svg", "Корзина"],
+  ["favorite_outline_28.svg", "Избранное"],
+  ["user_outline_28.svg", "Пользователь"],
+  ["users_outline_28.svg", "Пользователи"],
+  ["video_outline_28.svg", "Видео"],
+  ["work_outline_28.svg", "Работа"],
+  ["download_outline_28.svg", "Скачать"],
+  ["upload_outline_28.svg", "Загрузить"],
+];
+
+const animatedIconFiles = [
+  ["clock-24-7.gif", "24/7 — часы"],
+  ["icon-01.gif", "Анимированная иконка 1"],
+  ["icon-02.gif", "Анимированная иконка 2"],
+  ["icon-03.gif", "Анимированная иконка 3"],
+  ["icon-04.gif", "Анимированная иконка 4"],
+  ["icon-05.gif", "Анимированная иконка 5"],
+  ["icon-06.gif", "Анимированная иконка 6"],
+  ["icon-07.gif", "Анимированная иконка 7"],
+  ["icon-08.gif", "Анимированная иконка 8"],
+  ["flapper-arrow.gif", "Хлопушка — стрелка"],
+  ["folder.gif", "Папка"],
+  ["message.gif", "Сообщение"],
+  ["question-flapper.gif", "Вопрос — хлопушка"],
+  ["question-horse.gif", "Вопрос — игрушка"],
+  ["question-sun.gif", "Вопрос — солнце"],
+  ["shopping-cart.gif", "Корзина"],
+  ["suitcase-trophy.gif", "Чемодан — награда"],
+  ["sun-arrow.gif", "Солнце — стрелка"],
+  ["sync.gif", "Синхронизация"],
+  ["horse-arrow.gif", "Игрушка — стрелка"],
+  ["users-vk.gif", "Пользователи — VK"],
+  ["video.gif", "Видео"],
+];
+
+function makeIconMaterial([filename, title], index, animated = false) {
+  const source = `${ICON_BASE_PATH}/${animated ? "animated" : "2d"}/${filename}`;
+  return {
+    id: `icon-${animated ? "animated" : "2d"}-${index + 1}`,
+    title,
+    product: animated ? "Анимированные" : "2D",
+    type: "Иконка",
+    format: animated ? "GIF" : "SVG",
+    style: animated ? "Анимация" : "Контурная",
+    tags: ["иконка", animated ? "анимация" : "2D", title],
+    preview: source,
+    source,
+    mimeType: animated ? "image/gif" : "image/svg+xml",
+    assetKind: "image",
+    librarySection: "icons",
+  };
+}
+
+const iconMaterials = [
+  ...staticIconFiles.map((icon, index) => makeIconMaterial(icon, index)),
+  ...animatedIconFiles.map((icon, index) => makeIconMaterial(icon, index, true)),
+];
+
+materials.push(...iconMaterials);
+
 const materialFilterMetadata = {
   title: {
     goal: "Информировать",
@@ -348,8 +427,8 @@ const sectionFilterConfigs = {
     options: ["3D", "2D", "Фото", "Абстракция"],
   },
   icons: {
-    label: "Расширение файла: svg, png, gif",
-    options: ["SVG", "PNG", "GIF"],
+    label: "Тип иконок",
+    options: ["Все", "2D", "Анимированные"],
   },
   logos: {
     label: "Выберите продукт",
@@ -400,7 +479,7 @@ const state = {
   sectionFilters: {
     photos: "Все",
     illustrations: "3D",
-    icons: "SVG",
+    icons: "Все",
     logos: "Все",
     templates: "Все",
   },
@@ -690,8 +769,13 @@ function getVisibleMaterials() {
     if (state.sectionFilters.logos !== "Все") {
       result = result.filter((item) => item.product === state.sectionFilters.logos);
     }
+  } else if (state.section === "icons") {
+    result = result.filter((item) => item.librarySection === "icons");
+    if (state.sectionFilters.icons !== "Все") {
+      result = result.filter((item) => item.product === state.sectionFilters.icons);
+    }
   } else if (["presentations", "templates"].includes(state.section)) {
-    result = result.filter((item) => item.librarySection !== "photos");
+    result = result.filter((item) => !item.librarySection);
   } else {
     result = [];
   }
@@ -770,7 +854,7 @@ function renderLibrary() {
       const isSelected = state.selected.has(item.id);
       return `
         <article
-          class="material-card${item.librarySection === "logos" ? " is-logo" : ""}${isSelected ? " is-selected" : ""}"
+          class="material-card${item.librarySection === "logos" ? " is-logo" : ""}${item.librarySection === "icons" ? " is-icon" : ""}${isSelected ? " is-selected" : ""}"
           data-id="${item.id}"
           tabindex="0"
           aria-label="Открыть предпросмотр: ${escapeHtml(item.title)}"
@@ -973,6 +1057,8 @@ function openPreview(id) {
   state.previewId = id;
   elements.previewImage.src = item.preview;
   elements.previewImage.alt = `Превью: ${item.title}`;
+  elements.previewInsertButton.textContent =
+    item.assetKind === "image" ? "Вставить изображение" : "Вставить слайд";
   elements.previewOverlay.hidden = false;
   elements.closePreviewButton.focus();
 }

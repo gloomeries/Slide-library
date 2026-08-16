@@ -897,7 +897,8 @@ textarea:focus-visible,
   border-color: var(--accent);
 }
 
-.material-card.is-logo {
+.material-card.is-logo,
+.material-card.is-icon {
   background: #fff;
 }
 
@@ -914,11 +915,16 @@ textarea:focus-visible,
   opacity: 0.35;
 }
 
-.material-card.is-logo .card-preview {
+.material-card.is-logo .card-preview,
+.material-card.is-icon .card-preview {
   box-sizing: border-box;
   padding: 18px;
   object-fit: contain;
   background: #fff;
+}
+
+.material-card.is-icon .card-preview {
+  padding: 22px;
 }
 
 .card-title {
@@ -1022,7 +1028,8 @@ textarea:focus-visible,
   height: 36px;
 }
 
-.library-grid.is-list .material-card.is-logo .card-preview {
+.library-grid.is-list .material-card.is-logo .card-preview,
+.library-grid.is-list .material-card.is-icon .card-preview {
   padding: 5px;
 }
 
