@@ -1075,18 +1075,44 @@ async function fetchImageAsBase64(item) {
   };
 }
 
-function getImageSize(base64, mimeType) {
+function decodeImage(base64, mimeType) {
   return new Promise((resolve, reject) => {
     const image = new window.Image();
-    image.onload = () => resolve({ width: image.naturalWidth, height: image.naturalHeight });
-    image.onerror = () => reject(new Error("Не удалось определить размер фотографии"));
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("Не удалось подготовить изображение к вставке"));
     image.src = `data:${mimeType};base64,${base64}`;
   });
 }
 
+function rasterizeSvg(image) {
+  const sourceWidth = image.naturalWidth || image.width;
+  const sourceHeight = image.naturalHeight || image.height;
+  if (!sourceWidth || !sourceHeight) {
+    throw new Error("У SVG не удалось определить размер");
+  }
+
+  const maxRasterSide = 1600;
+  const scale = Math.min(1, maxRasterSide / Math.max(sourceWidth, sourceHeight));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(sourceWidth * scale));
+  canvas.height = Math.max(1, Math.round(sourceHeight * scale));
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("Не удалось преобразовать SVG для PowerPoint");
+
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  context.drawImage(image, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL("image/png").split(",")[1];
+}
+
 async function insertImageOnCurrentSlide(item, index = 0) {
   const { base64, mimeType } = await fetchImageAsBase64(item);
-  const sourceSize = await getImageSize(base64, mimeType);
+  const decodedImage = await decodeImage(base64, mimeType);
+  const sourceSize = {
+    width: decodedImage.naturalWidth || decodedImage.width,
+    height: decodedImage.naturalHeight || decodedImage.height,
+  };
+  const isSvg = mimeType.includes("svg") || item.mimeType?.includes("svg");
+  const insertBase64 = isSvg ? rasterizeSvg(decodedImage) : base64;
   const maxWidth = 600;
   const maxHeight = 320;
   const scale = Math.min(maxWidth / sourceSize.width, maxHeight / sourceSize.height);
@@ -1096,11 +1122,9 @@ async function insertImageOnCurrentSlide(item, index = 0) {
 
   await new Promise((resolve, reject) => {
     Office.context.document.setSelectedDataAsync(
-      base64,
+      insertBase64,
       {
-        coercionType: mimeType.includes("svg")
-          ? Office.CoercionType.XmlSvg
-          : Office.CoercionType.Image,
+        coercionType: Office.CoercionType.Image,
         imageLeft: Math.round((720 - width) / 2) + offset,
         imageTop: Math.round((405 - height) / 2) + offset,
         imageWidth: width,
