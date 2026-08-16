@@ -1091,14 +1091,19 @@ function rasterizeSvg(image) {
     throw new Error("У SVG не удалось определить размер");
   }
 
-  const maxRasterSide = 1600;
-  const scale = Math.min(1, maxRasterSide / Math.max(sourceWidth, sourceHeight));
+  // Most logo SVGs are exported from Figma at only 65×65 px. Render the
+  // vector at a large fixed resolution before handing it to PowerPoint;
+  // otherwise PowerPoint stretches a tiny PNG and the logo looks blurred.
+  const maxRasterSide = 2048;
+  const scale = maxRasterSide / Math.max(sourceWidth, sourceHeight);
   const canvas = document.createElement("canvas");
   canvas.width = Math.max(1, Math.round(sourceWidth * scale));
   canvas.height = Math.max(1, Math.round(sourceHeight * scale));
   const context = canvas.getContext("2d");
   if (!context) throw new Error("Не удалось преобразовать SVG для PowerPoint");
 
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = "high";
   context.clearRect(0, 0, canvas.width, canvas.height);
   context.drawImage(image, 0, 0, canvas.width, canvas.height);
   return canvas.toDataURL("image/png").split(",")[1];
