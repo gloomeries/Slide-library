@@ -675,6 +675,7 @@ function cacheElements() {
     "accountEmail",
     "folderPickerButton",
     "folderInput",
+    "folderTemplateLink",
     "lastLoginField",
     "indexUpdatedField",
     "cancelAccountButton",
@@ -1647,6 +1648,18 @@ function bindEvents() {
 
   elements.profileButton.addEventListener("click", openAccount);
   elements.cancelAccountButton.addEventListener("click", closeAccount);
+  elements.folderTemplateLink.addEventListener("click", (event) => {
+    event.preventDefault();
+    const downloadUrl = new window.URL(
+      elements.folderTemplateLink.getAttribute("href"),
+      window.location.href
+    ).href;
+    if (Office?.context?.ui?.openBrowserWindow) {
+      Office.context.ui.openBrowserWindow(downloadUrl);
+      return;
+    }
+    window.open(downloadUrl, "_blank", "noopener");
+  });
   elements.folderPickerButton.addEventListener("click", () => elements.folderInput.click());
   elements.folderInput.addEventListener("change", (event) => {
     pendingFolderName = getFolderNameFromFiles(event.target.files);
