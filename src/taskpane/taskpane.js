@@ -242,8 +242,8 @@ const sectionHints = {
 
 const sectionFilterConfigs = {
   photos: {
-    label: "Продукт группы VK",
-    options: ["MAX", "VK", "Сферум", "Одноклассники"],
+    label: "Категория фотографий",
+    options: ["Все"],
   },
   illustrations: {
     label: "Тип изображения",
@@ -311,12 +311,12 @@ function hashString(value) {
   return hash.toString(36);
 }
 
-function getPhotoProduct(path) {
-  const normalizedPath = String(path || "").toLocaleLowerCase("ru");
-  const products = ["MAX", "VK", "Сферум", "Одноклассники"];
-  return (
-    products.find((product) => normalizedPath.includes(product.toLocaleLowerCase("ru"))) || "MAX"
-  );
+function getPhotoCategory(path) {
+  const parts = String(path || "")
+    .split("/")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  return parts.length > 1 ? parts[0] : "Без категории";
 }
 
 function isImageResource(resource) {
@@ -325,14 +325,15 @@ function isImageResource(resource) {
 
 function makePhotoMaterial(resource, relativePath) {
   const title = resource.name.replace(/\.[^.]+$/, "");
+  const category = getPhotoCategory(relativePath);
   return {
     id: `yandex-photo-${hashString(resource.path || relativePath || resource.name)}`,
     title,
-    product: getPhotoProduct(relativePath),
+    product: category,
     type: "Фотография",
     format: "Изображение",
     style: "Фотография",
-    tags: ["фотография", getPhotoProduct(relativePath), title],
+    tags: ["фотография", category, title],
     preview: resource.preview || resource.file,
     source: resource.file || resource.preview,
     mimeType: resource.mime_type || "image/jpeg",
