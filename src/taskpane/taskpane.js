@@ -10,7 +10,6 @@ const YANDEX_DISK_PUBLIC_API = "https://cloud-api.yandex.net/v1/disk/public/reso
 const STORAGE_KEYS = {
   favorites: "slidebrary:favorites",
   recent: "slidebrary:recent",
-  account: "slidebrary:account",
   proposals: "slidebrary:proposals",
 };
 
@@ -473,10 +472,14 @@ const state = {
   photosLoaded: false,
   photosError: "",
   sidebarCollapsed: false,
-  account: readStoredObject(STORAGE_KEYS.account),
+  account: {},
+  personalFolderConnected: false,
+  personalFolderName: "",
+  personalScanReport: null,
   templateFile: null,
   templateTags: [],
   sectionFilters: {
+    presentations: "Все",
     photos: "Все",
     illustrations: "3D",
     icons: "Все",
@@ -589,6 +592,9 @@ async function loadYandexPhotos() {
 const elements = {};
 let toastTimer;
 let pendingFolderName = "";
+let pendingFolderFiles = [];
+let personalMaterials = [];
+let personalObjectUrls = [];
 
 function readStoredArray(key) {
   try {
@@ -600,23 +606,6 @@ function readStoredArray(key) {
 }
 
 function writeStoredArray(key, value) {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    showToast("Не удалось сохранить данные на этом устройстве");
-  }
-}
-
-function readStoredObject(key) {
-  try {
-    const value = JSON.parse(localStorage.getItem(key) || "{}");
-    return value && typeof value === "object" && !Array.isArray(value) ? value : {};
-  } catch {
-    return {};
-  }
-}
-
-function writeStoredObject(key, value) {
   try {
     localStorage.setItem(key, JSON.stringify(value));
   } catch {
@@ -754,32 +743,44 @@ function getMaterialFilterValue(item, field) {
 }
 
 function getVisibleMaterials() {
-  if (state.tab === "personal") return [];
+  let result = state.tab === "personal" ? [...personalMaterials] : [...materials];
 
-  let result = [...materials];
-  if (state.section === "favorites") {
-    result = result.filter((item) => state.favorites.has(item.id));
-  } else if (state.section === "photos") {
-    result = result.filter((item) => item.librarySection === "photos");
-    if (state.sectionFilters.photos !== "Все") {
-      result = result.filter((item) => item.product === state.sectionFilters.photos);
+  if (state.tab === "personal") {
+    if (state.section === "favorites") {
+      result = result.filter((item) => state.favorites.has(item.id));
+    } else if (state.section === "assistant") {
+      result = [];
+    } else {
+      result = result.filter((item) => item.librarySection === state.section);
+      if (state.sectionFilters[state.section] && state.sectionFilters[state.section] !== "Все") {
+        result = result.filter((item) => item.product === state.sectionFilters[state.section]);
+      }
     }
-  } else if (state.section === "logos") {
-    result = result.filter((item) => item.librarySection === "logos");
-    if (state.sectionFilters.logos !== "Все") {
-      result = result.filter((item) => item.product === state.sectionFilters.logos);
-    }
-  } else if (state.section === "icons") {
-    result = result.filter((item) => item.librarySection === "icons");
-    if (state.sectionFilters.icons !== "Все") {
-      result = result.filter((item) => item.product === state.sectionFilters.icons);
-    }
-  } else if (["presentations", "templates"].includes(state.section)) {
-    result = result.filter((item) => !item.librarySection);
   } else {
-    result = [];
+    if (state.section === "favorites") {
+      result = result.filter((item) => state.favorites.has(item.id));
+    } else if (state.section === "photos") {
+      result = result.filter((item) => item.librarySection === "photos");
+      if (state.sectionFilters.photos !== "Все") {
+        result = result.filter((item) => item.product === state.sectionFilters.photos);
+      }
+    } else if (state.section === "logos") {
+      result = result.filter((item) => item.librarySection === "logos");
+      if (state.sectionFilters.logos !== "Все") {
+        result = result.filter((item) => item.product === state.sectionFilters.logos);
+      }
+    } else if (state.section === "icons") {
+      result = result.filter((item) => item.librarySection === "icons");
+      if (state.sectionFilters.icons !== "Все") {
+        result = result.filter((item) => item.product === state.sectionFilters.icons);
+      }
+    } else if (["presentations", "templates"].includes(state.section)) {
+      result = result.filter((item) => !item.librarySection);
+    } else {
+      result = [];
+    }
+    if (state.section === "templates" && state.sectionFilters.templates !== "MAX") result = [];
   }
-  if (state.section === "templates" && state.sectionFilters.templates !== "MAX") result = [];
 
   const normalizedQuery = state.query.trim().toLocaleLowerCase("ru");
   if (normalizedQuery) {
@@ -806,7 +807,13 @@ function getVisibleMaterials() {
 
 function getEmptyMessage() {
   if (state.tab === "personal") {
-    return "Личная библиотека появится в следующем этапе. Сейчас все материалы находятся во вкладке «Публичное».";
+    if (!state.personalFolderConnected) {
+      return "Авторизуйтесь и выберите папку Slidebrary Personal, чтобы загрузить личные материалы.";
+    }
+    if (state.query || getActiveFilterCount()) {
+      return "В личной папке ничего не найдено. Попробуйте изменить поиск или фильтры.";
+    }
+    return `В разделе «${sections.find((section) => section.id === state.section)?.label || "Личное"}» подключенной папки пока нет материалов.`;
   }
   if (state.section === "favorites")
     return "В избранном пока ничего нет. Нажмите на сердечко у нужного материала.";
@@ -823,11 +830,23 @@ function getEmptyMessage() {
 }
 
 function renderStatus() {
-  if (state.loading || (state.section === "photos" && state.photosLoading)) {
+  if (
+    state.loading ||
+    (state.tab === "public" && state.section === "photos" && state.photosLoading)
+  ) {
     elements.statusRegion.innerHTML = `
       <div class="loading-grid" aria-label="Загрузка материалов">
         <div class="skeleton"></div><div class="skeleton"></div>
         <div class="skeleton"></div><div class="skeleton"></div>
+      </div>`;
+    return;
+  }
+  if (state.tab === "personal" && state.personalFolderConnected) {
+    const report = state.personalScanReport;
+    elements.statusRegion.innerHTML = `
+      <div class="personal-folder-status">
+        <span><strong>${escapeHtml(state.personalFolderName)}</strong><br>${report ? `Загружено: ${report.added}${report.skipped ? ` · Пропущено: ${report.skipped}` : ""}` : "Личная папка подключена"}</span>
+        <button class="text-button" type="button" data-open-account>Обновить</button>
       </div>`;
     return;
   }
@@ -837,14 +856,21 @@ function renderStatus() {
 function renderLibrary() {
   renderStatus();
   elements.library.className = `library-grid${state.view === "list" ? " is-list" : ""}`;
-  if (state.loading || (state.section === "photos" && state.photosLoading)) {
+  if (
+    state.loading ||
+    (state.tab === "public" && state.section === "photos" && state.photosLoading)
+  ) {
     elements.library.innerHTML = "";
     return;
   }
 
   const visibleMaterials = getVisibleMaterials();
   if (!visibleMaterials.length) {
-    elements.library.innerHTML = `<div class="empty-state">${escapeHtml(getEmptyMessage())}</div>`;
+    const connectButton =
+      state.tab === "personal"
+        ? `<button class="button button-primary personal-connect-button" type="button" data-open-account>${state.personalFolderConnected ? "Выбрать другую папку" : "Авторизоваться и выбрать папку"}</button>`
+        : "";
+    elements.library.innerHTML = `<div class="empty-state personal-empty-state"><p>${escapeHtml(getEmptyMessage())}</p>${connectButton}</div>`;
     return;
   }
 
@@ -881,10 +907,9 @@ function renderLibrary() {
 }
 
 function renderControls() {
-  const isTemplateView = state.section === "templates" && state.tab === "personal";
   const isAssistantView = state.section === "assistant";
-  elements.libraryView.hidden = isTemplateView || isAssistantView;
-  elements.templateView.hidden = !isTemplateView;
+  elements.libraryView.hidden = isAssistantView;
+  elements.templateView.hidden = true;
   elements.assistantView.hidden = !isAssistantView;
   renderSectionFilter();
   elements.sectionHint.textContent = sectionHints[state.section];
@@ -927,12 +952,41 @@ function renderControls() {
 
 function renderSectionFilter() {
   const config = sectionFilterConfigs[state.section];
-  const isVisible = Boolean(config) && state.tab === "public";
+  const personalLibrarySections = [
+    "presentations",
+    "photos",
+    "illustrations",
+    "icons",
+    "logos",
+    "templates",
+  ];
+  const isVisible =
+    (state.tab === "public" && Boolean(config)) ||
+    (state.tab === "personal" &&
+      state.personalFolderConnected &&
+      personalLibrarySections.includes(state.section));
   elements.sectionFilter.hidden = !isVisible;
   if (!isVisible) return;
 
-  elements.sectionFilterLabel.textContent = config.label;
-  elements.sectionFilterSelect.innerHTML = config.options
+  const options =
+    state.tab === "personal"
+      ? [
+          "Все",
+          ...new Set(
+            personalMaterials
+              .filter((item) => item.librarySection === state.section)
+              .map((item) => item.product)
+              .filter(Boolean)
+              .sort((a, b) => a.localeCompare(b, "ru"))
+          ),
+        ]
+      : config.options;
+  if (!options.includes(state.sectionFilters[state.section])) {
+    state.sectionFilters[state.section] = "Все";
+  }
+  elements.sectionFilterLabel.textContent =
+    state.tab === "personal" ? "Категория в личной папке" : config.label;
+  elements.sectionFilterSelect.innerHTML = options
     .map(
       (option) =>
         `<option value="${escapeHtml(option)}"${state.sectionFilters[state.section] === option ? " selected" : ""}>${escapeHtml(option)}</option>`
@@ -1034,7 +1088,7 @@ function selectSection(sectionId) {
   else if (isLeavingCompactView) state.sidebarCollapsed = false;
   state.selected.clear();
   render();
-  if (sectionId === "photos") loadYandexPhotos();
+  if (sectionId === "photos" && state.tab === "public") loadYandexPhotos();
   window.scrollTo(0, 0);
 }
 
@@ -1051,8 +1105,12 @@ function toggleSelection(id) {
   render();
 }
 
+function findMaterial(id) {
+  return [...materials, ...personalMaterials].find((item) => item.id === id);
+}
+
 function openPreview(id) {
-  const item = materials.find((candidate) => candidate.id === id);
+  const item = findMaterial(id);
   if (!item) return;
   state.previewId = id;
   elements.previewImage.src = item.preview;
@@ -1084,6 +1142,7 @@ function closeFilters() {
 
 function openAccount() {
   pendingFolderName = state.account.folderName || "";
+  pendingFolderFiles = [];
   elements.accountEmail.value = state.account.email || "";
   elements.folderPickerButton.querySelector(".folder-path").textContent = pendingFolderName
     ? `//…/${pendingFolderName}`
@@ -1101,6 +1160,7 @@ function closeAccount() {
   elements.accountOverlay.hidden = true;
   elements.folderInput.value = "";
   pendingFolderName = "";
+  pendingFolderFiles = [];
   elements.profileButton.focus();
 }
 
@@ -1109,6 +1169,188 @@ function getFolderNameFromFiles(files) {
   if (!firstFile) return "";
   const relativePath = firstFile.webkitRelativePath || firstFile.name;
   return relativePath.split("/")[0] || firstFile.name;
+}
+
+const PERSONAL_SECTION_ALIASES = {
+  presentations: ["презентации", "презентация", "presentations", "presentation"],
+  photos: ["фотографии", "фотография", "фото", "photos", "photo"],
+  illustrations: ["иллюстрации", "иллюстрация", "illustrations", "illustration"],
+  icons: ["иконки", "иконка", "icons", "icon"],
+  logos: ["логотипы", "логотип", "logos", "logo"],
+  templates: ["шаблоны", "шаблон", "templates", "template"],
+};
+
+const PERSONAL_IMAGE_EXTENSIONS = new Set(["jpg", "jpeg", "png", "gif", "svg", "webp"]);
+const PERSONAL_IMAGE_MIME_TYPES = {
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  gif: "image/gif",
+  svg: "image/svg+xml",
+  webp: "image/webp",
+};
+
+function normalizeFolderName(value) {
+  return String(value || "")
+    .normalize("NFC")
+    .toLocaleLowerCase("ru")
+    .replace(/^\s*\d+[\s._-]*/, "")
+    .trim();
+}
+
+function getPersonalSection(folderName) {
+  const normalizedName = normalizeFolderName(folderName);
+  return Object.entries(PERSONAL_SECTION_ALIASES).find(([, aliases]) =>
+    aliases.includes(normalizedName)
+  )?.[0];
+}
+
+function getFileExtension(filename) {
+  const match = String(filename || "").match(/\.([^.]+)$/);
+  return match ? match[1].toLocaleLowerCase("ru") : "";
+}
+
+function getPersonalFileEntry(file) {
+  const relativePath = file.webkitRelativePath || file.name;
+  const allParts = relativePath.split("/").filter(Boolean);
+  const parts = allParts.length > 1 ? allParts.slice(1) : allParts;
+  return {
+    file,
+    relativePath: parts.join("/"),
+    parts,
+    extension: getFileExtension(file.name),
+  };
+}
+
+function createPersonalObjectUrl(file) {
+  const url = window.URL.createObjectURL(file);
+  personalObjectUrls.push(url);
+  return url;
+}
+
+function createPptxPlaceholder(title) {
+  const safeTitle = escapeHtml(title).slice(0, 48);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 270"><rect width="480" height="270" fill="#f1f3f5"/><rect x="36" y="38" width="408" height="194" rx="12" fill="#fff" stroke="#d9dee4"/><rect x="62" y="68" width="52" height="64" rx="6" fill="#f05a28"/><path d="M76 83h24M76 97h24M76 111h16" stroke="#fff" stroke-width="5" stroke-linecap="round"/><text x="132" y="96" font-family="Arial,sans-serif" font-size="22" font-weight="700" fill="#242424">PowerPoint</text><text x="62" y="177" font-family="Arial,sans-serif" font-size="18" fill="#68717a">${safeTitle}</text></svg>`;
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+}
+
+function clearPersonalMaterials() {
+  if (state.previewId?.startsWith("personal-")) closePreview();
+  personalObjectUrls.forEach((url) => window.URL.revokeObjectURL(url));
+  personalObjectUrls = [];
+  personalMaterials = [];
+  state.selected.clear();
+}
+
+function scanPersonalFolder(files) {
+  clearPersonalMaterials();
+  const entries = Array.from(files || []).map(getPersonalFileEntry);
+  const entriesByPath = new Map(
+    entries.map((entry) => [entry.relativePath.toLocaleLowerCase("ru"), entry])
+  );
+  const companionPreviewPaths = new Set();
+  const report = {
+    total: entries.length,
+    added: 0,
+    skipped: 0,
+    unknownSections: new Set(),
+  };
+
+  entries.forEach((entry) => {
+    if (entry.parts.length < 2) return;
+
+    const section = getPersonalSection(entry.parts[0]);
+    if (!section) {
+      if (entry.parts[0]) report.unknownSections.add(entry.parts[0]);
+      report.skipped += 1;
+      return;
+    }
+
+    const isPresentation = entry.extension === "pptx";
+    const isImage = PERSONAL_IMAGE_EXTENSIONS.has(entry.extension);
+    if (!isPresentation && !isImage) {
+      report.skipped += 1;
+      return;
+    }
+
+    if (companionPreviewPaths.has(entry.relativePath.toLocaleLowerCase("ru"))) return;
+    if (isPresentation && !["presentations", "templates"].includes(section)) {
+      report.skipped += 1;
+      return;
+    }
+    if (isImage && ["presentations", "templates"].includes(section)) {
+      const imageKey = entry.relativePath.toLocaleLowerCase("ru").replace(/\.[^.]+$/, "");
+      const hasPresentation = entries.some(
+        (candidate) =>
+          candidate.extension === "pptx" &&
+          candidate.relativePath.toLocaleLowerCase("ru").replace(/\.[^.]+$/, "") === imageKey
+      );
+      if (hasPresentation) return;
+      report.skipped += 1;
+      return;
+    }
+
+    const title = entry.file.name.replace(/\.[^.]+$/, "");
+    const category = entry.parts.length > 2 ? entry.parts[1] : "Без категории";
+    const nestedTags = entry.parts.slice(1, -1);
+    let preview = "";
+    let source = "";
+
+    if (isPresentation) {
+      const basePath = entry.relativePath.replace(/\.[^.]+$/, "");
+      const previewEntry = ["png", "jpg", "jpeg", "webp"]
+        .map((extension) => entriesByPath.get(`${basePath}.${extension}`.toLocaleLowerCase("ru")))
+        .find(Boolean);
+      if (previewEntry) {
+        preview = createPersonalObjectUrl(previewEntry.file);
+        companionPreviewPaths.add(previewEntry.relativePath.toLocaleLowerCase("ru"));
+      } else {
+        preview = createPptxPlaceholder(title);
+      }
+    } else {
+      source = createPersonalObjectUrl(entry.file);
+      preview = source;
+    }
+
+    const typeLabels = {
+      presentations: "Презентация",
+      photos: "Фотография",
+      illustrations: "Иллюстрация",
+      icons: "Иконка",
+      logos: "Логотип",
+      templates: "Шаблон",
+    };
+    personalMaterials.push({
+      id: `personal-${hashString(entry.relativePath.toLocaleLowerCase("ru"))}`,
+      title,
+      product: category,
+      type: typeLabels[section],
+      format: entry.extension.toLocaleUpperCase("ru"),
+      style: "Личный материал",
+      tags: ["личное", title, ...nestedTags],
+      preview,
+      source,
+      mimeType:
+        entry.file.type || PERSONAL_IMAGE_MIME_TYPES[entry.extension] || "application/octet-stream",
+      assetKind: isPresentation ? "presentation" : "image",
+      librarySection: section,
+      localFile: entry.file,
+      relativePath: entry.relativePath,
+      isPersonal: true,
+    });
+    report.added += 1;
+  });
+
+  state.personalFolderConnected = true;
+  state.personalFolderName = pendingFolderName;
+  state.personalScanReport = {
+    ...report,
+    unknownSections: [...report.unknownSections],
+  };
+  Object.keys(state.sectionFilters).forEach((section) => {
+    state.sectionFilters[section] = "Все";
+  });
+  return state.personalScanReport;
 }
 
 function resetFilters() {
@@ -1146,12 +1388,21 @@ function arrayBufferToBase64(buffer) {
 }
 
 async function fetchTemplateAsBase64(item) {
+  if (item.localFile) {
+    return arrayBufferToBase64(await item.localFile.arrayBuffer());
+  }
   const response = await fetch(item.template);
   if (!response.ok) throw new Error(`Не удалось загрузить «${item.title}» (${response.status})`);
   return arrayBufferToBase64(await response.arrayBuffer());
 }
 
 async function fetchImageAsBase64(item) {
+  if (item.localFile) {
+    return {
+      base64: arrayBufferToBase64(await item.localFile.arrayBuffer()),
+      mimeType: item.localFile.type || item.mimeType || "image/jpeg",
+    };
+  }
   if (!item.source) throw new Error(`Не найдена ссылка на изображение «${item.title}»`);
   const response = await fetch(item.source);
   if (!response.ok) throw new Error(`Не удалось загрузить «${item.title}» (${response.status})`);
@@ -1233,7 +1484,7 @@ async function insertImageOnCurrentSlide(item, index = 0) {
 }
 
 async function insertMaterials(ids) {
-  const items = ids.map((id) => materials.find((item) => item.id === id)).filter(Boolean);
+  const items = ids.map(findMaterial).filter(Boolean);
   if (!items.length || state.inserting) return;
   if (typeof PowerPoint === "undefined") {
     showToast("Вставка доступна, когда плагин открыт внутри PowerPoint");
@@ -1301,6 +1552,10 @@ function showToast(message) {
 }
 
 function handleLibraryClick(event) {
+  if (event.target.closest("[data-open-account]")) {
+    openAccount();
+    return;
+  }
   const card = event.target.closest(".material-card");
   if (!card) return;
   const id = card.dataset.id;
@@ -1395,6 +1650,7 @@ function bindEvents() {
   elements.folderPickerButton.addEventListener("click", () => elements.folderInput.click());
   elements.folderInput.addEventListener("change", (event) => {
     pendingFolderName = getFolderNameFromFiles(event.target.files);
+    pendingFolderFiles = Array.from(event.target.files || []);
     if (!pendingFolderName) return;
     elements.folderPickerButton.querySelector(".folder-path").textContent =
       `//…/${pendingFolderName}`;
@@ -1402,17 +1658,32 @@ function bindEvents() {
   });
   elements.accountForm.addEventListener("submit", (event) => {
     event.preventDefault();
+    if (!pendingFolderFiles.length && !state.personalFolderConnected) {
+      showToast("Выберите корневую папку с личными материалами");
+      return;
+    }
     const now = new Date().toISOString();
-    const folderChanged = Boolean(elements.folderInput.files?.length);
+    const folderChanged = pendingFolderFiles.length > 0;
+    const scanReport = folderChanged ? scanPersonalFolder(pendingFolderFiles) : null;
     state.account = {
       email: elements.accountEmail.value.trim(),
-      folderName: pendingFolderName,
+      folderName: pendingFolderName || state.personalFolderName,
       lastLogin: now,
       indexUpdated: folderChanged ? now : state.account.indexUpdated || "",
     };
-    writeStoredObject(STORAGE_KEYS.account, state.account);
     closeAccount();
-    showToast("Данные личного кабинета сохранены");
+    state.tab = "personal";
+    render();
+    if (scanReport) {
+      const unknownMessage = scanReport.unknownSections.length
+        ? ` Не распознаны папки: ${scanReport.unknownSections.slice(0, 3).join(", ")}.`
+        : "";
+      showToast(
+        `Личная папка подключена: ${scanReport.added} материалов.${scanReport.skipped ? ` Пропущено: ${scanReport.skipped}.` : ""}${unknownMessage}`
+      );
+    } else {
+      showToast("Личная сессия обновлена");
+    }
   });
   elements.accountOverlay.addEventListener("click", (event) => {
     if (event.target === elements.accountOverlay) closeAccount();
@@ -1434,6 +1705,7 @@ function bindEvents() {
     state.tab = tab.dataset.tab;
     state.selected.clear();
     render();
+    if (state.tab === "public" && state.section === "photos") loadYandexPhotos();
   });
 
   elements.searchInput.addEventListener("input", (event) => {
@@ -1486,6 +1758,7 @@ function bindEvents() {
     }
   });
   elements.library.addEventListener("click", handleLibraryClick);
+  elements.statusRegion.addEventListener("click", handleLibraryClick);
   elements.library.addEventListener("keydown", handleLibraryKeydown);
   elements.library.addEventListener(
     "error",
