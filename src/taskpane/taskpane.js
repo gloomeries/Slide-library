@@ -335,6 +335,7 @@ function makePhotoMaterial(resource, relativePath) {
     tags: ["фотография", getPhotoProduct(relativePath), title],
     preview: resource.preview || resource.file,
     source: resource.file || resource.preview,
+    mimeType: resource.mime_type || "image/jpeg",
     librarySection: "photos",
   };
 }
@@ -954,6 +955,56 @@ async function fetchTemplateAsBase64(item) {
   return arrayBufferToBase64(await response.arrayBuffer());
 }
 
+async function fetchPhotoAsBase64(item) {
+  if (!item.source) throw new Error(`Не найдена ссылка на фотографию «${item.title}»`);
+  const response = await fetch(item.source);
+  if (!response.ok) throw new Error(`Не удалось загрузить «${item.title}» (${response.status})`);
+  return {
+    base64: arrayBufferToBase64(await response.arrayBuffer()),
+    mimeType: response.headers.get("content-type") || item.mimeType || "image/jpeg",
+  };
+}
+
+function getImageSize(base64, mimeType) {
+  return new Promise((resolve, reject) => {
+    const image = new window.Image();
+    image.onload = () => resolve({ width: image.naturalWidth, height: image.naturalHeight });
+    image.onerror = () => reject(new Error("Не удалось определить размер фотографии"));
+    image.src = `data:${mimeType};base64,${base64}`;
+  });
+}
+
+async function insertPhotoOnCurrentSlide(item, index = 0) {
+  const { base64, mimeType } = await fetchPhotoAsBase64(item);
+  const sourceSize = await getImageSize(base64, mimeType);
+  const maxWidth = 600;
+  const maxHeight = 320;
+  const scale = Math.min(maxWidth / sourceSize.width, maxHeight / sourceSize.height);
+  const width = Math.round(sourceSize.width * scale);
+  const height = Math.round(sourceSize.height * scale);
+  const offset = Math.min(index * 12, 48);
+
+  await new Promise((resolve, reject) => {
+    Office.context.document.setSelectedDataAsync(
+      base64,
+      {
+        coercionType: Office.CoercionType.Image,
+        imageLeft: Math.round((720 - width) / 2) + offset,
+        imageTop: Math.round((405 - height) / 2) + offset,
+        imageWidth: width,
+        imageHeight: height,
+      },
+      (result) => {
+        if (result.status === Office.AsyncResultStatus.Failed) {
+          reject(new Error(result.error?.message || "PowerPoint не смог вставить фотографию"));
+          return;
+        }
+        resolve();
+      }
+    );
+  });
+}
+
 async function insertMaterials(ids) {
   const items = ids.map((id) => materials.find((item) => item.id === id)).filter(Boolean);
   if (!items.length || state.inserting) return;
@@ -964,18 +1015,29 @@ async function insertMaterials(ids) {
 
   state.inserting = true;
   renderControls();
-  elements.statusRegion.innerHTML = '<div class="status-message">Загружаем выбранные слайды…</div>';
+  elements.statusRegion.innerHTML =
+    '<div class="status-message">Загружаем выбранные материалы…</div>';
 
   try {
+    const photos = items.filter((item) => item.librarySection === "photos");
+    const templates = items.filter((item) => item.librarySection !== "photos");
     const encodedTemplates = [];
-    for (const item of items) {
+    for (const item of templates) {
       encodedTemplates.push({ item, base64: await fetchTemplateAsBase64(item) });
     }
 
-    await PowerPoint.run(async (context) => {
-      encodedTemplates.forEach(({ base64 }) => context.presentation.insertSlidesFromBase64(base64));
-      await context.sync();
-    });
+    if (encodedTemplates.length) {
+      await PowerPoint.run(async (context) => {
+        encodedTemplates.forEach(({ base64 }) =>
+          context.presentation.insertSlidesFromBase64(base64)
+        );
+        await context.sync();
+      });
+    }
+
+    for (let index = 0; index < photos.length; index += 1) {
+      await insertPhotoOnCurrentSlide(photos[index], index);
+    }
 
     const insertedIds = items.map((item) => item.id);
     state.recent = [
@@ -985,11 +1047,18 @@ async function insertMaterials(ids) {
     writeStoredArray(STORAGE_KEYS.recent, state.recent);
     state.selected.clear();
     closePreview();
-    showToast(items.length === 1 ? "Слайд вставлен" : `Добавлено слайдов: ${items.length}`);
+    if (photos.length && !templates.length) {
+      showToast(
+        photos.length === 1 ? "Фотография вставлена" : `Добавлено фотографий: ${photos.length}`
+      );
+    } else {
+      showToast(items.length === 1 ? "Слайд вставлен" : `Добавлено материалов: ${items.length}`);
+    }
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Не удалось вставить выбранные слайды";
+    const message =
+      error instanceof Error ? error.message : "Не удалось вставить выбранные материалы";
     elements.statusRegion.innerHTML = `<div class="error-state">${escapeHtml(message)}. Проверьте интернет и повторите попытку.</div>`;
-    showToast("Произошла ошибка при вставке");
+    showToast(message);
   } finally {
     state.inserting = false;
     renderControls();
