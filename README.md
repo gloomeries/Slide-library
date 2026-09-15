@@ -6,8 +6,8 @@
 
 Пользователю не нужны Git, Node.js или VS Code.
 
-1. Скачайте production-манифест:
-   [manifest.xml](https://gloomeries.github.io/Slide-library/manifest.xml).
+1. Откройте [manifest.xml в GitHub](https://github.com/gloomeries/Slide-library/blob/main/manifest.xml)
+   и нажмите **Download raw file**.
 2. Откройте Terminal.
 3. Выполните команды:
 
@@ -48,7 +48,7 @@ npm run stop
 ## Публикация
 
 Push в ветку `main` автоматически запускает production-сборку и публикует папку `dist`
-в GitHub Pages. В production-манифесте адрес `localhost` заменяется на:
+в GitHub Pages. Основной `manifest.xml` уже использует production-адрес:
 
 ```text
 https://gloomeries.github.io/Slide-library/
